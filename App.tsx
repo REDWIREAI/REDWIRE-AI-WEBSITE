@@ -487,24 +487,24 @@ const App: React.FC = () => {
   const checkKey = async () => {
     // If we've already marked it as manually connected to avoid race conditions, skip auto-check
     if (isManuallyConnected.current) {
-        console.log("Skipping checkKey because isManuallyConnected is true");
         return;
     }
 
-    let isSelected = false;
-    // @ts-ignore
-    if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
-      // @ts-ignore
-      isSelected = await window.aistudio.hasSelectedApiKey();
-    } else {
-        // Not in AI Studio env, rely on the key being present in process.env
-        isSelected = true;
+    const aistudio = (window as any).aistudio;
+    let isSelected = true; 
+    
+    if (aistudio && typeof aistudio.hasSelectedApiKey === 'function') {
+      try {
+        isSelected = await aistudio.hasSelectedApiKey();
+      } catch (e) {
+        console.warn("AI Studio context not fully loaded or accessible:", e);
+      }
     }
     
     // Validate the actual string presence
-    const envKeyValid = !!process.env.API_KEY && process.env.API_KEY.trim().length > 10;
+    const envKeyValid = !!process.env.API_KEY && process.env.API_KEY.trim().length > 5;
     
-    // In AI Studio environments, we respect the handshake + string
+    // finalHasKey is true if we have a valid key string (and pass studio check if in that environment)
     const finalHasKey = isSelected && envKeyValid;
     setHasKey(finalHasKey);
   };
@@ -516,28 +516,26 @@ const App: React.FC = () => {
   }, []);
 
   const handleOpenKey = async () => {
-    console.log("Connect API Key button clicked");
     setIsConnecting(true);
-    // @ts-ignore
-    if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
+    const aistudio = (window as any).aistudio;
+
+    if (aistudio && typeof aistudio.openSelectKey === 'function') {
       try {
-        console.log("Triggering window.aistudio.openSelectKey()");
-        // @ts-ignore
-        await window.aistudio.openSelectKey();
+        // Trigger dialog
+        await aistudio.openSelectKey();
         
         // Per instructions: assume success immediately to mitigate race condition
         isManuallyConnected.current = true;
         setHasKey(true);
-        console.log("Key selection triggered, hasKey forced to true");
       } catch (err) {
         console.error("Failed to open key selector", err);
+        alert("Unable to open the API Key selector. Please ensure you are in a supported environment.");
       } finally {
         setIsConnecting(false);
       }
     } else {
-      console.warn("window.aistudio.openSelectKey not found in current environment");
-      // If we are not in AI Studio, clicking the button shouldn't really be possible 
-      // because hasKey would be true if process.env.API_KEY is present.
+      // Fallback: This might be triggered if window.aistudio isn't ready yet or missing.
+      alert("AI Studio environment not detected. Please ensure you are logged in and selecting a key from the platform UI.");
       setIsConnecting(false);
     }
   };
@@ -695,20 +693,20 @@ const App: React.FC = () => {
       <KeyContext.Provider value={{ hasKey, triggerKeyError }}>
         <div className="min-h-screen relative">
           {!hasKey && (
-            <div className="fixed inset-0 z-[200] bg-slate-950/98 backdrop-blur-2xl flex items-center justify-center p-6 text-center">
+            <div className="fixed inset-0 z-[200] bg-slate-950/98 backdrop-blur-3xl flex items-center justify-center p-6 text-center">
               <div className="max-w-md w-full dark-glass p-12 rounded-[40px] border-red-500/50 shadow-[0_0_80px_rgba(220,38,38,0.2)] border animate-in zoom-in-95 duration-300">
                 <div className="w-24 h-24 bg-red-600/20 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner border border-red-500/20">
                   <Key className="w-12 h-12 text-red-500 animate-pulse" />
                 </div>
                 <h2 className="text-3xl font-extrabold mb-4 text-white">Unlock Pro Features</h2>
                 <p className="text-slate-400 mb-6 leading-relaxed">
-                  Your current environment needs a **Paid Project API Key** to power advanced models like **Gemini 3 Pro** and the **SEO Engine**.
+                  Red Wire AI requires an **Authorized API Key** to power advanced models like **Gemini 3 Pro** and the **SEO Engine**.
                 </p>
                 
                 <div className="bg-red-600/10 border border-red-600/20 rounded-2xl p-4 mb-8 flex items-start text-left">
                   <AlertCircle className="w-5 h-5 text-red-500 mr-3 mt-0.5 shrink-0" />
                   <p className="text-xs text-red-200/80 leading-relaxed font-medium">
-                    Please click the button below and select your API key. If the engine still fails, ensure your project has **Billing Enabled** at <span className="text-red-400">ai.google.dev</span>.
+                    Please click the button below to open the selection dialog. Ensure your project has **Billing Enabled** at <span className="text-red-400">ai.google.dev</span>.
                   </p>
                 </div>
 
@@ -719,7 +717,7 @@ const App: React.FC = () => {
                     className="w-full py-5 bg-red-600 hover:bg-red-500 rounded-2xl font-bold text-xl transition-all shadow-xl shadow-red-900/30 flex items-center justify-center active:scale-95 group disabled:opacity-50"
                   >
                     {isConnecting ? (
-                        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                        <div className="flex items-center"><Loader2 className="w-6 h-6 animate-spin mr-2" /> <span>Connecting...</span></div>
                     ) : (
                         <>Connect API Key <Sparkles className="ml-2 w-5 h-5 group-hover:rotate-12 transition-transform" /></>
                     )}
