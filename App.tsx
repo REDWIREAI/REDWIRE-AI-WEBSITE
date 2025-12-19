@@ -53,7 +53,7 @@ const STORAGE_KEYS = {
 
 const GET_STARTED_URL = "https://api.leadconnectorhq.com/widget/form/BGm7Yk9CCULsw34XwYeM?notrack=true";
 
-// Notification Context
+// Contexts
 interface Notification {
   id: string;
   type: 'sale' | 'affiliate' | 'info';
@@ -64,7 +64,13 @@ const NotificationContext = createContext({
   notify: (message: string, type: 'sale' | 'affiliate' | 'info' = 'info') => {}
 });
 
+const KeyContext = createContext({
+  hasKey: false,
+  triggerKeyError: () => {}
+});
+
 export const useNotify = () => useContext(NotificationContext);
+export const useKeyStatus = () => useContext(KeyContext);
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -162,6 +168,7 @@ const ImageUploadModal = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { triggerKeyError } = useKeyStatus();
 
   useEffect(() => {
     if (isOpen) setUrl(currentValue || '');
@@ -214,9 +221,9 @@ const ImageUploadModal = ({
       onClose();
     } catch (err: any) {
       if (err.message === "API_KEY_MISSING") {
-        alert("Please connect your API Key first.");
+        triggerKeyError();
       } else {
-        alert("Failed to generate image. Please try again.");
+        alert("Failed to generate image. Please ensure your API key is correctly selected and billing is enabled.");
       }
     } finally {
       setIsGenerating(false);
@@ -291,7 +298,7 @@ const ImageUploadModal = ({
               <input 
                 type="text" 
                 placeholder="Paste image URL here..." 
-                className="w-full bg-slate-900 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-red-500 transition-all text-sm text-white"
+                className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-red-500 transition-all text-sm text-white"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
               />
@@ -306,7 +313,7 @@ const ImageUploadModal = ({
 
           {activeTab === 'ai' && (
             <div className="space-y-4">
-              <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+              <div className="bg-slate-950/50 p-4 rounded-2xl border border-slate-800">
                 <label className="block text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-2">Describe what you want to generate</label>
                 <textarea 
                   placeholder="e.g. A futuristic robot helping customers, high tech, cinematic..." 
@@ -372,11 +379,11 @@ const Navbar = ({ settings, onLogoClick, isAdminMode, onExitAdmin }: {
           <div className="group relative cursor-pointer hover:text-white py-2">
             Ecosystem
             <div className="absolute top-full left-0 pt-4 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto z-50">
-              <div className="w-52 bg-slate-900 border border-slate-800 rounded-xl p-2 shadow-2xl shadow-black/50">
-                <Link to="/product/chatbot" className="block p-2 hover:bg-slate-800 rounded-lg">AI Chatbot</Link>
-                <Link to="/product/voicebot" className="block p-2 hover:bg-slate-800 rounded-lg">Website Voicebot</Link>
-                <Link to="/product/voice-agent" className="block p-2 hover:bg-slate-800 rounded-lg">AI Voice Agent</Link>
-                <Link to="/product/smart-website" className="block p-2 hover:bg-slate-800 rounded-lg">Smart Websites</Link>
+              <div className="w-52 bg-slate-950 border border-slate-800 rounded-xl p-2 shadow-2xl shadow-black/50">
+                <Link to="/product/chatbot" className="block p-2 hover:bg-slate-800 rounded-lg text-slate-300">AI Chatbot</Link>
+                <Link to="/product/voicebot" className="block p-2 hover:bg-slate-800 rounded-lg text-slate-300">Website Voicebot</Link>
+                <Link to="/product/voice-agent" className="block p-2 hover:bg-slate-800 rounded-lg text-slate-300">AI Voice Agent</Link>
+                <Link to="/product/smart-website" className="block p-2 hover:bg-slate-800 rounded-lg text-slate-300">Smart Websites</Link>
               </div>
             </div>
           </div>
@@ -408,7 +415,7 @@ const Navbar = ({ settings, onLogoClick, isAdminMode, onExitAdmin }: {
         <button className="md:hidden text-slate-300" onClick={() => setIsOpen(!isOpen)}>{isOpen ? <X /> : <Menu />}</button>
       </div>
       {isOpen && (
-        <div className="md:hidden absolute top-24 left-6 right-6 bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-2xl z-40">
+        <div className="md:hidden absolute top-24 left-6 right-6 bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-2xl z-40">
           <Link to="/" onClick={() => setIsOpen(false)} className="block text-lg">Home</Link>
           <Link to="/pricing" onClick={() => setIsOpen(false)} className="block text-lg">Pricing</Link>
           <Link to="/blog" onClick={() => setIsOpen(false)} className="block text-lg">Blog</Link>
@@ -443,7 +450,6 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
-  // We assume the key is missing initially to force detection
   const [hasKey, setHasKey] = useState(false);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
     siteName: "Red Wire AI", 
@@ -475,27 +481,25 @@ const App: React.FC = () => {
 
   const location = useLocation();
 
-  useEffect(() => {
-    const checkKey = async () => {
-      let isSelected = false;
+  const checkKey = async () => {
+    let isSelected = false;
+    // @ts-ignore
+    if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
       // @ts-ignore
-      if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
-        // @ts-ignore
-        isSelected = await window.aistudio.hasSelectedApiKey();
-      }
-      
-      // We must have BOTH a selection (if applicable) and a valid string in the env
-      const isEnvKeyValid = !!process.env.API_KEY && process.env.API_KEY.trim().length > 0;
-      
-      // If we are in AI Studio, we need BOTH isSelected and isEnvKeyValid
-      // Outside AI studio, just isEnvKeyValid
-      const finalHasKey = (window.aistudio ? isSelected : true) && isEnvKeyValid;
-      
-      setHasKey(finalHasKey);
-    };
+      isSelected = await window.aistudio.hasSelectedApiKey();
+    }
     
+    // Validate the actual string presence
+    const envKeyValid = !!process.env.API_KEY && process.env.API_KEY.trim().length > 10;
+    
+    // In AI Studio environments, we respect the handshake + string
+    const finalHasKey = (window.aistudio ? isSelected : true) && envKeyValid;
+    setHasKey(finalHasKey);
+  };
+
+  useEffect(() => {
     checkKey();
-    const interval = setInterval(checkKey, 2000);
+    const interval = setInterval(checkKey, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -504,9 +508,13 @@ const App: React.FC = () => {
     if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
       // @ts-ignore
       await window.aistudio.openSelectKey();
-      // Assume selection was successful as per instructions
+      // Per instructions, proceed immediately
       setHasKey(true);
     }
+  };
+
+  const triggerKeyError = () => {
+    setHasKey(false);
   };
 
   // Robust Admin activation logic
@@ -639,7 +647,7 @@ const App: React.FC = () => {
       return true;
     } catch (err: any) {
       console.error(err);
-      if (err.message === "API_KEY_MISSING" || (err.message && err.message.includes("Requested entity was not found"))) {
+      if (err.message === "API_KEY_MISSING" || (err.message && err.message.includes("Key must be set"))) {
         setHasKey(false);
       }
       return false;
@@ -654,141 +662,141 @@ const App: React.FC = () => {
 
   return (
     <NotificationContext.Provider value={{ notify }}>
-      <div className="min-h-screen relative">
-        {!hasKey && (
-          <div className="fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-6 text-center">
-            <div className="max-w-md w-full dark-glass p-12 rounded-[40px] border-red-500/50 shadow-[0_0_50px_rgba(220,38,38,0.2)] border animate-in zoom-in-95 duration-300">
-              <div className="w-20 h-20 bg-red-600/20 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
-                <Key className="w-10 h-10 text-red-500 animate-pulse" />
-              </div>
-              <h2 className="text-3xl font-extrabold mb-4 text-white">Gemini 3 Pro Access</h2>
-              <p className="text-slate-400 mb-6 leading-relaxed">
-                To access advanced reasoning features like the <strong>SEO Blog Engine</strong> and <strong>Magic Rebrand</strong>, you must connect a valid Gemini API key from a paid project.
-              </p>
-              
-              <div className="bg-red-600/10 border border-red-600/20 rounded-2xl p-4 mb-8 flex items-start text-left">
-                <AlertCircle className="w-5 h-5 text-red-500 mr-3 mt-0.5 shrink-0" />
-                <p className="text-xs text-red-200/80 leading-relaxed font-medium">
-                  If you have already connected a key and are seeing this, ensure your project has <strong>Billing Enabled</strong> in the Google AI Studio settings.
+      <KeyContext.Provider value={{ hasKey, triggerKeyError }}>
+        <div className="min-h-screen relative">
+          {!hasKey && (
+            <div className="fixed inset-0 z-[200] bg-slate-950/98 backdrop-blur-2xl flex items-center justify-center p-6 text-center">
+              <div className="max-w-md w-full dark-glass p-12 rounded-[40px] border-red-500/50 shadow-[0_0_80px_rgba(220,38,38,0.2)] border animate-in zoom-in-95 duration-300">
+                <div className="w-24 h-24 bg-red-600/20 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner border border-red-500/20">
+                  <Key className="w-12 h-12 text-red-500 animate-pulse" />
+                </div>
+                <h2 className="text-3xl font-extrabold mb-4 text-white">Unlock Pro Features</h2>
+                <p className="text-slate-400 mb-6 leading-relaxed">
+                  Your current environment needs a **Paid Project API Key** to power advanced models like **Gemini 3 Pro** and the **SEO Engine**.
                 </p>
-              </div>
+                
+                <div className="bg-red-600/10 border border-red-600/20 rounded-2xl p-4 mb-8 flex items-start text-left">
+                  <AlertCircle className="w-5 h-5 text-red-500 mr-3 mt-0.5 shrink-0" />
+                  <p className="text-xs text-red-200/80 leading-relaxed font-medium">
+                    Please click the button below and select your API key. If the engine still fails, ensure your project has **Billing Enabled** at <span className="text-red-400">ai.google.dev</span>.
+                  </p>
+                </div>
 
-              <div className="space-y-4">
-                <button 
-                  onClick={handleOpenKey}
-                  className="w-full py-5 bg-red-600 hover:bg-red-500 rounded-2xl font-bold text-xl transition-all shadow-xl shadow-red-900/30 flex items-center justify-center active:scale-95"
-                >
-                  Connect API Key
-                </button>
-                <a 
-                  href="https://ai.google.dev/gemini-api/docs/billing" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="block text-xs text-slate-500 hover:text-red-500 font-bold transition-colors underline decoration-slate-800 underline-offset-4"
-                >
-                  View Billing & Setup Documentation
-                </a>
+                <div className="space-y-4">
+                  <button 
+                    onClick={handleOpenKey}
+                    className="w-full py-5 bg-red-600 hover:bg-red-500 rounded-2xl font-bold text-xl transition-all shadow-xl shadow-red-900/30 flex items-center justify-center active:scale-95 group"
+                  >
+                    Connect API Key <Sparkles className="ml-2 w-5 h-5 group-hover:rotate-12 transition-transform" />
+                  </button>
+                  <a 
+                    href="https://ai.google.dev/gemini-api/docs/billing" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="block text-xs text-slate-500 hover:text-red-500 font-bold transition-colors underline decoration-slate-800 underline-offset-4"
+                  >
+                    Setup Billing Documentation
+                  </a>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <Navbar 
-          settings={siteSettings} 
-          onLogoClick={isAdminMode ? () => setUploadModal({ isOpen: true, title: 'Update Logo', field: 'logoImageUrl' }) : undefined} 
-          isAdminMode={isAdminMode}
-          onExitAdmin={onExitAdmin}
-        />
-        
-        {/* Notification Overlay */}
-        <div className="fixed top-24 right-6 z-[200] space-y-4 pointer-events-none">
-          {notifications.map((n) => (
-            <div key={n.id} className="w-80 p-4 dark-glass border-red-500/30 rounded-2xl shadow-2xl animate-in slide-in-from-right-8 duration-300 pointer-events-auto flex items-start space-x-4 border">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${n.type === 'sale' ? 'bg-green-500/20 text-green-500' : n.type === 'affiliate' ? 'bg-red-600/20 text-red-600' : 'bg-blue-500/20 text-blue-500'}`}>
-                {n.type === 'sale' ? <Bell className="w-5 h-5" /> : n.type === 'affiliate' ? <MessageSquare className="w-5 h-5" /> : <Loader2 className="w-5 h-5" />}
+          <Navbar 
+            settings={siteSettings} 
+            onLogoClick={isAdminMode ? () => setUploadModal({ isOpen: true, title: 'Update Logo', field: 'logoImageUrl' }) : undefined} 
+            isAdminMode={isAdminMode}
+            onExitAdmin={onExitAdmin}
+          />
+          
+          <div className="fixed top-24 right-6 z-[200] space-y-4 pointer-events-none">
+            {notifications.map((n) => (
+              <div key={n.id} className="w-80 p-4 dark-glass border-red-500/30 rounded-2xl shadow-2xl animate-in slide-in-from-right-8 duration-300 pointer-events-auto flex items-start space-x-4 border">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${n.type === 'sale' ? 'bg-green-500/20 text-green-500' : n.type === 'affiliate' ? 'bg-red-600/20 text-red-600' : 'bg-blue-500/20 text-blue-500'}`}>
+                  {n.type === 'sale' ? <Bell className="w-5 h-5" /> : n.type === 'affiliate' ? <MessageSquare className="w-5 h-5" /> : <Loader2 className="w-5 h-5" />}
+                </div>
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Notification Event</div>
+                  <p className="text-sm font-bold text-white leading-tight">{n.message}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <ImageUploadModal 
+            isOpen={uploadModal.isOpen} onClose={() => setUploadModal({ ...uploadModal, isOpen: false })} 
+            onSave={handleAssetSave} title={uploadModal.title} currentValue={uploadModal.productId ? products.find(p => p.id === uploadModal.productId)?.imageUrl : siteSettings[uploadModal.field!]}
+          />
+          <main>
+            <Routes>
+              <Route path="/" element={<Home settings={siteSettings} onImageClick={isAdminMode ? (field) => setUploadModal({ isOpen: true, title: 'Update Image', field }) : undefined} />} />
+              <Route path="/pricing" element={<Pricing products={products} settings={siteSettings} />} />
+              <Route path="/checkout" element={<Checkout products={products} />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/product/:id" element={<ProductDetail products={products} onImageClick={isAdminMode ? (id) => setUploadModal({ isOpen: true, title: 'Update Product Image', productId: id }) : undefined} settings={siteSettings} />} />
+              <Route path="/affiliate" element={<AffiliateProgram settings={siteSettings} />} />
+              <Route path="/contact" element={<Contact settings={siteSettings} />} />
+              <Route path="/blog" element={<Blog blogs={blogs} />} />
+              <Route path="/legal/:type" element={<Legal />} />
+              <Route path="/congobaby1!1!" element={
+                <AdminDashboard 
+                  products={products} 
+                  setProducts={setProducts} 
+                  siteSettings={siteSettings} 
+                  setSiteSettings={setSiteSettings} 
+                  onMagicScan={handleFullMagicUpdate}
+                  blogs={blogs}
+                  setBlogs={setBlogs}
+                />
+              } />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </main>
+          <footer className="bg-slate-950 border-t border-slate-900 py-12 px-6">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 text-sm text-slate-400">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 text-white">
+                  <BrandText name={siteSettings.siteName} logoUrl={siteSettings.logoImageUrl} />
+                </div>
+                <p>Empowering small businesses with AI automation.</p>
               </div>
               <div>
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Notification Event</div>
-                <p className="text-sm font-bold text-white leading-tight">{n.message}</p>
+                <h4 className="font-bold mb-4 text-white">Products</h4>
+                <ul className="space-y-2">
+                  <li><Link to="/product/chatbot" className="hover:text-red-500 transition-colors">AI Chatbot</Link></li>
+                  <li><Link to="/product/voicebot" className="hover:text-red-500 transition-colors">Website Voicebot</Link></li>
+                  <li><Link to="/product/voice-agent" className="hover:text-red-500 transition-colors">AI Voice Agent</Link></li>
+                  <li><Link to="/product/smart-website" className="hover:text-red-500 transition-colors">Smart Website</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-bold mb-4 text-white">Company</h4>
+                <ul className="space-y-2">
+                  <li><Link to="/affiliate" className="hover:text-red-500 transition-colors">Affiliates</Link></li>
+                  <li><Link to="/contact" className="hover:text-red-500 transition-colors">Contact</Link></li>
+                  <li><Link to="/blog" className="hover:text-red-500 transition-colors">Blog</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-bold mb-4 text-white">Legal</h4>
+                <ul className="space-y-2">
+                  <li><Link to="/legal/privacy" className="hover:text-red-500 transition-colors">Privacy Policy</Link></li>
+                  <li><Link to="/legal/terms" className="hover:text-red-500 transition-colors">Terms of Service</Link></li>
+                  <li><Link to="/legal/affiliate-terms" className="hover:text-red-500 transition-colors">Affiliate Terms</Link></li>
+                  <li><Link to="/legal/cookie" className="hover:text-red-500 transition-colors">Cookie Policy</Link></li>
+                  <li><Link to="/legal/disclaimer" className="hover:text-red-500 transition-colors">Disclaimer</Link></li>
+                </ul>
               </div>
             </div>
-          ))}
+          </footer>
+          <BackToTopButton />
         </div>
-
-        <ImageUploadModal 
-          isOpen={uploadModal.isOpen} onClose={() => setUploadModal({ ...uploadModal, isOpen: false })} 
-          onSave={handleAssetSave} title={uploadModal.title} currentValue={uploadModal.productId ? products.find(p => p.id === uploadModal.productId)?.imageUrl : siteSettings[uploadModal.field!]}
-        />
-        <main>
-          <Routes>
-            <Route path="/" element={<Home settings={siteSettings} onImageClick={isAdminMode ? (field) => setUploadModal({ isOpen: true, title: 'Update Image', field }) : undefined} />} />
-            <Route path="/pricing" element={<Pricing products={products} settings={siteSettings} />} />
-            <Route path="/checkout" element={<Checkout products={products} />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/product/:id" element={<ProductDetail products={products} onImageClick={isAdminMode ? (id) => setUploadModal({ isOpen: true, title: 'Update Product Image', productId: id }) : undefined} settings={siteSettings} />} />
-            <Route path="/affiliate" element={<AffiliateProgram settings={siteSettings} />} />
-            <Route path="/contact" element={<Contact settings={siteSettings} />} />
-            <Route path="/blog" element={<Blog blogs={blogs} />} />
-            <Route path="/legal/:type" element={<Legal />} />
-            <Route path="/congobaby1!1!" element={
-              <AdminDashboard 
-                products={products} 
-                setProducts={setProducts} 
-                siteSettings={siteSettings} 
-                setSiteSettings={setSiteSettings} 
-                onMagicScan={handleFullMagicUpdate}
-                blogs={blogs}
-                setBlogs={setBlogs}
-              />
-            } />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </main>
-        <footer className="bg-slate-950 border-t border-slate-900 py-12 px-6">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 text-sm text-slate-400">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2 text-white">
-                <BrandText name={siteSettings.siteName} logoUrl={siteSettings.logoImageUrl} />
-              </div>
-              <p>Empowering small businesses with AI automation.</p>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4 text-white">Products</h4>
-              <ul className="space-y-2">
-                <li><Link to="/product/chatbot" className="hover:text-red-500 transition-colors">AI Chatbot</Link></li>
-                <li><Link to="/product/voicebot" className="hover:text-red-500 transition-colors">Website Voicebot</Link></li>
-                <li><Link to="/product/voice-agent" className="hover:text-red-500 transition-colors">AI Voice Agent</Link></li>
-                <li><Link to="/product/smart-website" className="hover:text-red-500 transition-colors">Smart Website</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4 text-white">Company</h4>
-              <ul className="space-y-2">
-                <li><Link to="/affiliate" className="hover:text-red-500 transition-colors">Affiliates</Link></li>
-                <li><Link to="/contact" className="hover:text-red-500 transition-colors">Contact</Link></li>
-                <li><Link to="/blog" className="hover:text-red-500 transition-colors">Blog</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4 text-white">Legal</h4>
-              <ul className="space-y-2">
-                <li><Link to="/legal/privacy" className="hover:text-red-500 transition-colors">Privacy Policy</Link></li>
-                <li><Link to="/legal/terms" className="hover:text-red-500 transition-colors">Terms of Service</Link></li>
-                <li><Link to="/legal/affiliate-terms" className="hover:text-red-500 transition-colors">Affiliate Terms</Link></li>
-                <li><Link to="/legal/cookie" className="hover:text-red-500 transition-colors">Cookie Policy</Link></li>
-                <li><Link to="/legal/disclaimer" className="hover:text-red-500 transition-colors">Disclaimer</Link></li>
-              </ul>
-            </div>
-          </div>
-        </footer>
-        <BackToTopButton />
-      </div>
+      </KeyContext.Provider>
     </NotificationContext.Provider>
   );
 };
 
-// Simplified entry to handle routing context correctly
 const RootApp = () => (
   <HashRouter>
     <ScrollToTop />
