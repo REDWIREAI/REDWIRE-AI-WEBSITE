@@ -18,7 +18,9 @@ import {
   CheckCircle,
   MessageSquare,
   LogOut,
-  ShieldCheck
+  ShieldCheck,
+  Key,
+  AlertCircle
 } from 'lucide-react';
 
 // Pages
@@ -437,6 +439,7 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
+  const [hasKey, setHasKey] = useState(true);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
     siteName: "Red Wire AI", 
     primaryButtonColor: "#dc2626",
@@ -466,6 +469,28 @@ const App: React.FC = () => {
   });
 
   const location = useLocation();
+
+  useEffect(() => {
+    const checkKey = async () => {
+      // @ts-ignore
+      if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+        // @ts-ignore
+        const selected = await window.aistudio.hasSelectedApiKey();
+        setHasKey(selected);
+      }
+    };
+    checkKey();
+  }, []);
+
+  const handleOpenKey = async () => {
+    // @ts-ignore
+    if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
+      // @ts-ignore
+      await window.aistudio.openSelectKey();
+      // Assume selection was successful and proceed
+      setHasKey(true);
+    }
+  };
 
   // Robust Admin activation logic
   useEffect(() => {
@@ -595,8 +620,11 @@ const App: React.FC = () => {
         contactSubheading: branding.contactSubheading
       }));
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      if (err.message && err.message.includes("Requested entity was not found")) {
+        setHasKey(false);
+      }
       return false;
     }
   };
@@ -610,6 +638,44 @@ const App: React.FC = () => {
   return (
     <NotificationContext.Provider value={{ notify }}>
       <div className="min-h-screen relative">
+        {!hasKey && (
+          <div className="fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-6 text-center">
+            <div className="max-w-md w-full dark-glass p-12 rounded-[40px] border-red-500/50 shadow-[0_0_50px_rgba(220,38,38,0.2)] border animate-in zoom-in-95 duration-300">
+              <div className="w-20 h-20 bg-red-600/20 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
+                <Key className="w-10 h-10 text-red-500 animate-pulse" />
+              </div>
+              <h2 className="text-3xl font-extrabold mb-4 text-white">Gemini 3 Pro Access</h2>
+              <p className="text-slate-400 mb-6 leading-relaxed">
+                To access advanced reasoning features like the <strong>SEO Blog Engine</strong> and <strong>Magic Rebrand</strong>, you must connect a paid Google Cloud API key.
+              </p>
+              
+              <div className="bg-red-600/10 border border-red-600/20 rounded-2xl p-4 mb-8 flex items-start text-left">
+                <AlertCircle className="w-5 h-5 text-red-500 mr-3 mt-0.5 shrink-0" />
+                <p className="text-xs text-red-200/80 leading-relaxed font-medium">
+                  Ensure your selected project has billing enabled to use the <strong>gemini-3-pro-preview</strong> model required for these high-performance automation tasks.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <button 
+                  onClick={handleOpenKey}
+                  className="w-full py-5 bg-red-600 hover:bg-red-500 rounded-2xl font-bold text-xl transition-all shadow-xl shadow-red-900/30 flex items-center justify-center active:scale-95"
+                >
+                  Connect API Key
+                </button>
+                <a 
+                  href="https://ai.google.dev/gemini-api/docs/billing" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="block text-xs text-slate-500 hover:text-red-500 font-bold transition-colors underline decoration-slate-800 underline-offset-4"
+                >
+                  View Billing & Setup Documentation
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
         <Navbar 
           settings={siteSettings} 
           onLogoClick={isAdminMode ? () => setUploadModal({ isOpen: true, title: 'Update Logo', field: 'logoImageUrl' }) : undefined} 
