@@ -214,7 +214,6 @@ const ImageUploadModal = ({
       onClose();
     } catch (err: any) {
       if (err.message === "API_KEY_MISSING") {
-        // This will be caught by the parent component or handled via state
         alert("Please connect your API Key first.");
       } else {
         alert("Failed to generate image. Please try again.");
@@ -426,8 +425,7 @@ const Navbar = ({ settings, onLogoClick, isAdminMode, onExitAdmin }: {
           </a>
           {isAdminMode && (
             <button 
-              onClick={// @ts-ignore
-                () => { onExitAdmin(); setIsOpen(false); }}
+              onClick={() => { onExitAdmin(); setIsOpen(false); }}
               className="w-full py-3 bg-slate-800 rounded-xl font-bold text-sm"
             >
               Exit Admin Mode
@@ -445,7 +443,7 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
-  // Start with false to force check/prompt
+  // We assume the key is missing initially to force detection
   const [hasKey, setHasKey] = useState(false);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
     siteName: "Red Wire AI", 
@@ -479,21 +477,24 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const checkKey = async () => {
+      let isSelected = false;
       // @ts-ignore
       if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
         // @ts-ignore
-        const selected = await window.aistudio.hasSelectedApiKey();
-        // Also check if the string itself is actually available in the environment
-        const envKeyAvailable = !!process.env.API_KEY;
-        setHasKey(selected && envKeyAvailable);
-      } else {
-        // Fallback for non-aistudio environments
-        setHasKey(!!process.env.API_KEY);
+        isSelected = await window.aistudio.hasSelectedApiKey();
       }
+      
+      // We must have BOTH a selection (if applicable) and a valid string in the env
+      const isEnvKeyValid = !!process.env.API_KEY && process.env.API_KEY.trim().length > 0;
+      
+      // If we are in AI Studio, we need BOTH isSelected and isEnvKeyValid
+      // Outside AI studio, just isEnvKeyValid
+      const finalHasKey = (window.aistudio ? isSelected : true) && isEnvKeyValid;
+      
+      setHasKey(finalHasKey);
     };
-    checkKey();
     
-    // Check periodically or on focus to catch key injection
+    checkKey();
     const interval = setInterval(checkKey, 2000);
     return () => clearInterval(interval);
   }, []);
@@ -503,7 +504,7 @@ const App: React.FC = () => {
     if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
       // @ts-ignore
       await window.aistudio.openSelectKey();
-      // MUST assume success as per guidelines
+      // Assume selection was successful as per instructions
       setHasKey(true);
     }
   };
@@ -662,13 +663,13 @@ const App: React.FC = () => {
               </div>
               <h2 className="text-3xl font-extrabold mb-4 text-white">Gemini 3 Pro Access</h2>
               <p className="text-slate-400 mb-6 leading-relaxed">
-                To access advanced reasoning features like the <strong>SEO Blog Engine</strong> and <strong>Magic Rebrand</strong>, you must connect a paid Google Cloud API key.
+                To access advanced reasoning features like the <strong>SEO Blog Engine</strong> and <strong>Magic Rebrand</strong>, you must connect a valid Gemini API key from a paid project.
               </p>
               
               <div className="bg-red-600/10 border border-red-600/20 rounded-2xl p-4 mb-8 flex items-start text-left">
                 <AlertCircle className="w-5 h-5 text-red-500 mr-3 mt-0.5 shrink-0" />
                 <p className="text-xs text-red-200/80 leading-relaxed font-medium">
-                  Ensure your selected project has billing enabled to use the <strong>gemini-3-pro-preview</strong> model required for these high-performance automation tasks.
+                  If you have already connected a key and are seeing this, ensure your project has <strong>Billing Enabled</strong> in the Google AI Studio settings.
                 </p>
               </div>
 

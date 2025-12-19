@@ -4,13 +4,14 @@ import { SiteSettings, Product } from "../types";
 
 /**
  * Validates the presence of the API key and returns a fresh client instance.
+ * As per guidelines, we instantiate right before the call to get the latest env state.
  */
 const getClient = () => {
   const apiKey = process.env.API_KEY;
-  if (!apiKey) {
+  if (!apiKey || apiKey.trim() === "") {
     throw new Error("API_KEY_MISSING");
   }
-  return new GoogleGenAI({ apiKey });
+  return new GoogleGenAI({ apiKey: apiKey.trim() });
 };
 
 /**
