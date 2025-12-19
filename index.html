@@ -5,15 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Red Wire AI | Automate & Scale</title>
   <script>
-    // SPA Redirect for Netlify: Redirect clean paths to hash paths for HashRouter
+    // SPA Redirect for Static Hosting (Netlify/Vercel)
+    // Converts clean URLs to HashRouter URLs to prevent 404s
     (function() {
       var path = window.location.pathname;
-      if (path && path !== '/' && !path.includes('.') && !window.location.hash) {
-        window.location.replace(window.location.origin + '/#' + path + window.location.search);
+      var search = window.location.search;
+      var hash = window.location.hash;
+      
+      // If we are at a clean path (like /congobaby1!1!) and not just the root
+      if (path && path !== '/' && !path.includes('.') && !hash) {
+        window.location.replace(window.location.origin + '/#' + path + search);
       }
     })();
   </script>
-  <!-- Using versioned Tailwind for stability -->
   <script src="https://cdn.tailwindcss.com/3.4.1"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -28,7 +32,6 @@
       backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.05);
     }
-    /* Simple animation for admin badge */
     @keyframes pulse-red {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.6; }

@@ -109,7 +109,10 @@ const BackToTopButton = () => {
 export const BrandText = ({ name, logoUrl, onLogoClick }: { name: string; logoUrl?: string; onLogoClick?: () => void }) => {
   const words = name.toUpperCase().split(' ');
   return (
-    <div className={`flex items-center space-x-3 relative ${onLogoClick ? 'group cursor-pointer' : ''}`} onClick={onLogoClick}>
+    <div 
+      className={`flex items-center space-x-3 relative ${onLogoClick ? 'group cursor-pointer' : ''}`} 
+      onClick={() => onLogoClick?.()}
+    >
       {logoUrl ? (
         <img src={logoUrl} alt={name} className="h-10 w-auto object-contain transition-transform group-hover:scale-105" />
       ) : (
@@ -351,7 +354,7 @@ const Navbar = ({ settings, onLogoClick, isAdminMode, onExitAdmin }: {
           
           {isAdminMode ? (
             <div className="flex items-center space-x-3">
-              <Link to="/congobaby1!1!" className="text-red-500 hover:text-red-400">Dashboard</Link>
+              <Link to="/congobaby1!1!" className="text-red-500 hover:text-red-400 font-bold">Dashboard</Link>
               <button 
                 onClick={onExitAdmin}
                 className="flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-black uppercase"
@@ -438,10 +441,10 @@ const App: React.FC = () => {
 
   const location = useLocation();
 
-  // Admin activation logic
+  // Robust Admin activation logic
   useEffect(() => {
-    // Check both for path in HashRouter
-    if (location.pathname === '/congobaby1!1!') {
+    const isAdminPath = location.pathname === '/congobaby1!1!' || window.location.hash.includes('/congobaby1!1!');
+    if (isAdminPath) {
       setIsAdminMode(true);
       sessionStorage.setItem(STORAGE_KEYS.ADMIN_TOKEN, 'true');
     }
@@ -668,7 +671,7 @@ const App: React.FC = () => {
         </footer>
         <BackToTopButton />
       </div>
-    </NotificationContext.Provider>
+    </main>
   );
 };
 

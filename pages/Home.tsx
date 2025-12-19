@@ -172,7 +172,7 @@ const Home = ({
               )}
               {onImageClick && (
                 <div 
-                  onClick={() => onImageClick('heroImageUrl')}
+                  onClick={() => onImageClick?.('heroImageUrl')}
                   className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-all duration-300 backdrop-blur-sm bg-black/40"
                 >
                   <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300">
@@ -290,7 +290,7 @@ const Home = ({
                 )}
                 {onImageClick && (
                   <div 
-                      onClick={() => onImageClick('whyChooseUsImageUrl')}
+                      onClick={() => onImageClick?.('whyChooseUsImageUrl')}
                       className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-all duration-300 backdrop-blur-sm bg-black/40"
                   >
                       <div className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center shadow-2xl">
