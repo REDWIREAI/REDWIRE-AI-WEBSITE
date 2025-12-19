@@ -451,6 +451,9 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [hasKey, setHasKey] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const isManuallyConnected = useRef(false);
+
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
     siteName: "Red Wire AI", 
     primaryButtonColor: "#dc2626",
@@ -482,18 +485,27 @@ const App: React.FC = () => {
   const location = useLocation();
 
   const checkKey = async () => {
+    // If we've already marked it as manually connected to avoid race conditions, skip auto-check
+    if (isManuallyConnected.current) {
+        console.log("Skipping checkKey because isManuallyConnected is true");
+        return;
+    }
+
     let isSelected = false;
     // @ts-ignore
     if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
       // @ts-ignore
       isSelected = await window.aistudio.hasSelectedApiKey();
+    } else {
+        // Not in AI Studio env, rely on the key being present in process.env
+        isSelected = true;
     }
     
     // Validate the actual string presence
     const envKeyValid = !!process.env.API_KEY && process.env.API_KEY.trim().length > 10;
     
     // In AI Studio environments, we respect the handshake + string
-    const finalHasKey = (window.aistudio ? isSelected : true) && envKeyValid;
+    const finalHasKey = isSelected && envKeyValid;
     setHasKey(finalHasKey);
   };
 
@@ -504,16 +516,34 @@ const App: React.FC = () => {
   }, []);
 
   const handleOpenKey = async () => {
+    console.log("Connect API Key button clicked");
+    setIsConnecting(true);
     // @ts-ignore
     if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
-      // @ts-ignore
-      await window.aistudio.openSelectKey();
-      // Per instructions, proceed immediately
-      setHasKey(true);
+      try {
+        console.log("Triggering window.aistudio.openSelectKey()");
+        // @ts-ignore
+        await window.aistudio.openSelectKey();
+        
+        // Per instructions: assume success immediately to mitigate race condition
+        isManuallyConnected.current = true;
+        setHasKey(true);
+        console.log("Key selection triggered, hasKey forced to true");
+      } catch (err) {
+        console.error("Failed to open key selector", err);
+      } finally {
+        setIsConnecting(false);
+      }
+    } else {
+      console.warn("window.aistudio.openSelectKey not found in current environment");
+      // If we are not in AI Studio, clicking the button shouldn't really be possible 
+      // because hasKey would be true if process.env.API_KEY is present.
+      setIsConnecting(false);
     }
   };
 
   const triggerKeyError = () => {
+    isManuallyConnected.current = false;
     setHasKey(false);
   };
 
@@ -685,9 +715,14 @@ const App: React.FC = () => {
                 <div className="space-y-4">
                   <button 
                     onClick={handleOpenKey}
-                    className="w-full py-5 bg-red-600 hover:bg-red-500 rounded-2xl font-bold text-xl transition-all shadow-xl shadow-red-900/30 flex items-center justify-center active:scale-95 group"
+                    disabled={isConnecting}
+                    className="w-full py-5 bg-red-600 hover:bg-red-500 rounded-2xl font-bold text-xl transition-all shadow-xl shadow-red-900/30 flex items-center justify-center active:scale-95 group disabled:opacity-50"
                   >
-                    Connect API Key <Sparkles className="ml-2 w-5 h-5 group-hover:rotate-12 transition-transform" />
+                    {isConnecting ? (
+                        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                    ) : (
+                        <>Connect API Key <Sparkles className="ml-2 w-5 h-5 group-hover:rotate-12 transition-transform" /></>
+                    )}
                   </button>
                   <a 
                     href="https://ai.google.dev/gemini-api/docs/billing" 
