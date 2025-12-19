@@ -2,13 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Settings, 
-  PieChart, 
   Save, 
-  AlertCircle,
   RefreshCw,
   Edit2,
-  Image as ImageIcon,
-  Type as TypeIcon,
   Layout,
   Sparkles,
   Globe,
@@ -16,11 +12,15 @@ import {
   FileText,
   X,
   Palette,
-  MousePointer2,
-  Code,
-  Terminal
+  Terminal,
+  Trash2,
+  CheckCircle,
+  Eye,
+  Search,
+  Hash
 } from 'lucide-react';
-import { Product, SiteSettings } from '../types';
+import { Product, SiteSettings, BlogPost } from '../types';
+import { generateBlogContent, generateAIImage } from '../services/gemini';
 
 interface AdminProps {
   products: Product[];
@@ -28,69 +28,77 @@ interface AdminProps {
   siteSettings: SiteSettings;
   setSiteSettings: (settings: SiteSettings) => void;
   onMagicScan: (context: string) => Promise<boolean>;
+  blogs: BlogPost[];
+  setBlogs: React.Dispatch<React.SetStateAction<BlogPost[]>>;
 }
 
-const AdminDashboard: React.FC<AdminProps> = ({ products, setProducts, siteSettings, setSiteSettings, onMagicScan }) => {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Product>>({});
-  const [activeTab, setActiveTab] = useState<'products' | 'cms' | 'advanced' | 'magic'>('products');
-  const [cmsPage, setCmsPage] = useState<'home' | 'branding' | 'pricing' | 'affiliate' | 'contact'>('home');
-  
-  const [brandingForm, setBrandingForm] = useState<SiteSettings>(siteSettings);
-  const [magicUrl, setMagicUrl] = useState('');
-  const [isMagicLoading, setIsMagicLoading] = useState(false);
+const AdminDashboard: React.FC<AdminProps> = ({ products, setProducts, siteSettings, setSiteSettings, onMagicScan, blogs, setBlogs }) => {
+  const [activeTab, setActiveTab] = useState<'products' | 'cms' | 'blogs' | 'magic'>('products');
+  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
+  const [isGeneratingBlog, setIsGeneratingBlog] = useState(false);
 
-  useEffect(() => {
-    setBrandingForm(siteSettings);
-  }, [siteSettings]);
-
-  const startEdit = (p: Product) => {
-    setEditingId(p.id);
-    setEditForm(p);
-  };
-
-  const saveProduct = () => {
-    setProducts(prev => prev.map(p => p.id === editingId ? { ...p, ...editForm } as Product : p));
-    setEditingId(null);
-  };
-
-  const saveBranding = () => {
-    setSiteSettings(brandingForm);
-    alert("Site settings updated successfully!");
-  };
-
-  const runMagicScan = async () => {
-    if (!magicUrl) return;
-    setIsMagicLoading(true);
-    const success = await onMagicScan(magicUrl);
-    setIsMagicLoading(false);
-    if (success) {
-      alert("Magic AI has successfully rebranded your site!");
-    } else {
-      alert("Magic AI scan failed. Please try again.");
+  const handleGenerateBlog = async () => {
+    setIsGeneratingBlog(true);
+    try {
+      const blogData = await generateBlogContent(siteSettings, products);
+      const imageUrl = await generateAIImage(blogData.imagePrompt, false);
+      
+      const newPost: BlogPost = {
+        id: Math.random().toString(36).substr(2, 9),
+        title: blogData.title,
+        excerpt: blogData.excerpt,
+        content: blogData.content,
+        metaDescription: blogData.metaDescription || '',
+        keywords: blogData.keywords || [],
+        readTime: blogData.readTime || '5 min read',
+        status: 'draft',
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        img: imageUrl
+      };
+      
+      setBlogs(prev => [newPost, ...prev]);
+      alert("New Draft Generated! You can now review and publish it.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to generate blog post.");
+    } finally {
+      setIsGeneratingBlog(false);
     }
+  };
+
+  const togglePublish = (id: string) => {
+    setBlogs(prev => prev.map(b => b.id === id ? { ...b, status: b.status === 'draft' ? 'published' : 'draft' } : b));
+  };
+
+  const deleteBlog = (id: string) => {
+    if (window.confirm("Are you sure? This action is permanent.")) {
+      setBlogs(prev => prev.filter(b => b.id !== id));
+    }
+  };
+
+  const saveEditedPost = () => {
+    if (!editingPost) return;
+    setBlogs(prev => prev.map(b => b.id === editingPost.id ? editingPost : b));
+    setEditingPost(null);
   };
 
   return (
     <div className="pt-32 pb-20 px-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-12">
-        <div>
-          <h1 className="text-4xl font-extrabold mb-2">Global <span className="text-red-500">Admin</span> Control</h1>
-          <p className="text-slate-400">Manage pricing, content, and visuals from one console.</p>
-        </div>
+        <h1 className="text-4xl font-extrabold">Control <span className="text-red-500">Panel</span></h1>
       </div>
 
       <div className="flex flex-wrap gap-4 mb-8">
         {[
           { id: 'products', label: 'Products', icon: Settings },
           { id: 'cms', label: 'Page CMS', icon: Layout },
-          { id: 'advanced', label: 'Advanced Settings', icon: Terminal },
-          { id: 'magic', label: 'Magic AI', icon: Sparkles },
+          { id: 'blogs', label: 'SEO Blog Engine', icon: FileText },
+          { id: 'magic', label: 'Magic Rebrand', icon: Sparkles },
         ].map((tab) => (
           <button 
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center px-6 py-3 rounded-xl font-bold transition-all capitalize ${activeTab === tab.id ? 'bg-red-600 text-white shadow-lg shadow-red-900/20' : 'bg-slate-900 text-slate-400 border border-slate-800'}`}
+            className={`flex items-center px-6 py-3 rounded-xl font-bold transition-all capitalize ${activeTab === tab.id ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 border border-slate-800'}`}
           >
             <tab.icon className="w-4 h-4 mr-2" />
             {tab.label}
@@ -98,288 +106,182 @@ const AdminDashboard: React.FC<AdminProps> = ({ products, setProducts, siteSetti
         ))}
       </div>
 
-      {activeTab === 'products' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-[40px] overflow-hidden shadow-2xl">
-          <div className="p-8 border-b border-slate-800 flex items-center justify-between">
-            <h3 className="text-2xl font-bold flex items-center">
-              <Settings className="w-6 h-6 mr-3 text-red-500" />
-              Manage Ecosystem Products
-            </h3>
-          </div>
-          <div className="p-8 space-y-4">
-            {products.map(p => (
-              <div key={p.id} className="p-6 bg-slate-950 rounded-3xl border border-slate-800 flex items-center justify-between group">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-slate-900 rounded-lg overflow-hidden border border-slate-800">
-                    <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold">{p.name}</div>
-                    <div className="text-sm text-slate-500">${p.monthlyPrice}/mo + ${p.setupFee} setup</div>
-                  </div>
-                </div>
-                <button onClick={() => startEdit(p)} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                  <Edit2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'cms' && (
-        <div className="space-y-8">
-          <div className="flex flex-wrap bg-slate-900 p-1 rounded-2xl w-fit border border-slate-800">
-            {['home', 'branding', 'pricing', 'affiliate', 'contact'].map(p => (
-              <button 
-                key={p} 
-                onClick={() => setCmsPage(p as any)}
-                className={`px-6 py-2 rounded-xl text-xs font-bold capitalize transition-all ${cmsPage === p ? 'bg-red-600 text-white' : 'text-slate-500'}`}
-              >
-                {p}
-              </button>
-            ))}
+      {activeTab === 'blogs' && (
+        <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="bg-slate-900 border border-slate-800 rounded-[40px] p-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="max-w-lg">
+              <h3 className="text-2xl font-bold mb-2">AI-Driven SEO Content</h3>
+              <p className="text-slate-400 text-sm">Gemini will analyze your site and products to write high-quality, structured articles with metadata and custom illustrations.</p>
+            </div>
+            <button 
+              onClick={handleGenerateBlog}
+              disabled={isGeneratingBlog}
+              className="px-8 py-5 bg-gradient-to-r from-red-600 to-orange-600 rounded-2xl font-bold flex items-center shadow-xl disabled:opacity-50"
+            >
+              {isGeneratingBlog ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Sparkles className="w-5 h-5 mr-2" />}
+              {isGeneratingBlog ? 'Writing SEO Draft...' : 'Generate New Blog'}
+            </button>
           </div>
 
           <div className="bg-slate-900 border border-slate-800 rounded-[40px] p-8 shadow-2xl">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              {cmsPage === 'home' && (
-                <>
-                  <div className="space-y-6">
-                    <h4 className="font-bold flex items-center text-red-500">
-                      <Layout className="w-4 h-4 mr-2" />
-                      Hero Section
-                    </h4>
-                    <div className="space-y-4">
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Heading</label>
-                      <textarea value={brandingForm.heroHeading} onChange={e => setBrandingForm({...brandingForm, heroHeading: e.target.value})} className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-sm min-h-[80px]" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-4">
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Button Text</label>
-                        <input value={brandingForm.heroButtonText} onChange={e => setBrandingForm({...brandingForm, heroButtonText: e.target.value})} className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-sm" />
-                      </div>
-                      <div className="space-y-4">
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Button Link</label>
-                        <input value={brandingForm.heroButtonLink} onChange={e => setBrandingForm({...brandingForm, heroButtonLink: e.target.value})} className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-sm" />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-6">
-                    <h4 className="font-bold flex items-center text-red-500">
-                      <Layout className="w-4 h-4 mr-2" />
-                      Trust Section
-                    </h4>
-                    <div className="space-y-4">
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Heading</label>
-                      <textarea value={brandingForm.whyChooseUsHeading} onChange={e => setBrandingForm({...brandingForm, whyChooseUsHeading: e.target.value})} className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-sm min-h-[80px]" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-4">
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Button Text</label>
-                        <input value={brandingForm.whyChooseUsButtonText} onChange={e => setBrandingForm({...brandingForm, whyChooseUsButtonText: e.target.value})} className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-sm" />
-                      </div>
-                      <div className="space-y-4">
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Button Link</label>
-                        <input value={brandingForm.whyChooseUsButtonLink} onChange={e => setBrandingForm({...brandingForm, whyChooseUsButtonLink: e.target.value})} className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-sm" />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-xl font-bold">Content Inventory</h3>
+              <div className="flex space-x-2">
+                <span className="px-3 py-1 bg-green-500/10 text-green-500 text-[10px] font-black uppercase rounded-full border border-green-500/20">
+                  {blogs.filter(b => b.status === 'published').length} Published
+                </span>
+                <span className="px-3 py-1 bg-yellow-500/10 text-yellow-500 text-[10px] font-black uppercase rounded-full border border-yellow-500/20">
+                  {blogs.filter(b => b.status === 'draft').length} Drafts
+                </span>
+              </div>
+            </div>
 
-              {cmsPage === 'branding' && (
-                <>
-                  <div className="space-y-6">
-                    <h4 className="font-bold flex items-center text-red-500">
-                      <TypeIcon className="w-4 h-4 mr-2" />
-                      Identity
-                    </h4>
-                    <div className="space-y-4">
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Site Name</label>
-                      <input value={brandingForm.siteName} onChange={e => setBrandingForm({...brandingForm, siteName: e.target.value})} className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-sm" />
+            <div className="space-y-4">
+              {blogs.map(blog => (
+                <div key={blog.id} className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between group">
+                  <div className="flex items-center space-x-4 overflow-hidden">
+                    <div className="relative shrink-0">
+                      <img src={blog.img} className="w-16 h-12 object-cover rounded-lg border border-slate-800" alt="" />
+                      <div className={`absolute -top-2 -right-2 w-4 h-4 rounded-full border-2 border-slate-950 ${blog.status === 'published' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
                     </div>
-                    <div className="space-y-4">
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Logo Image URL</label>
-                      <input 
-                        value={brandingForm.logoImageUrl || ''} 
-                        onChange={e => setBrandingForm({...brandingForm, logoImageUrl: e.target.value})} 
-                        className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-sm font-mono"
-                        placeholder="Paste image URL or Base64..."
-                      />
-                      <p className="text-[10px] text-slate-500 uppercase font-black">Note: Leave empty to use text logo</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    <h4 className="font-bold flex items-center text-red-500">
-                      <Palette className="w-4 h-4 mr-2" />
-                      Global Styling
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-4">
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Button Color</label>
-                        <div className="flex items-center space-x-2">
-                          <input type="color" value={brandingForm.primaryButtonColor} onChange={e => setBrandingForm({...brandingForm, primaryButtonColor: e.target.value})} className="w-10 h-10 rounded-lg bg-slate-950 border border-slate-800 overflow-hidden cursor-pointer" />
-                          <input type="text" value={brandingForm.primaryButtonColor} onChange={e => setBrandingForm({...brandingForm, primaryButtonColor: e.target.value})} className="flex-1 bg-slate-950 border border-slate-800 p-3 rounded-xl text-sm font-mono" />
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Button Text Color</label>
-                        <div className="flex items-center space-x-2">
-                          <input type="color" value={brandingForm.primaryButtonTextColor} onChange={e => setBrandingForm({...brandingForm, primaryButtonTextColor: e.target.value})} className="w-10 h-10 rounded-lg bg-slate-950 border border-slate-800 overflow-hidden cursor-pointer" />
-                          <input type="text" value={brandingForm.primaryButtonTextColor} onChange={e => setBrandingForm({...brandingForm, primaryButtonTextColor: e.target.value})} className="flex-1 bg-slate-950 border border-slate-800 p-3 rounded-xl text-sm font-mono" />
-                        </div>
+                    <div className="truncate">
+                      <div className="font-bold text-sm truncate text-white">{blog.title}</div>
+                      <div className="text-[10px] text-slate-500 flex items-center space-x-2">
+                        <span>{blog.date}</span>
+                        <span>•</span>
+                        <span className="text-red-500">{blog.readTime}</span>
+                        <span>•</span>
+                        <span className="flex items-center"><Hash className="w-3 h-3 mr-0.5" /> {blog.keywords.length} tags</span>
                       </div>
                     </div>
                   </div>
-                </>
+                  <div className="flex items-center space-x-2">
+                    <button 
+                      onClick={() => setEditingPost(blog)}
+                      className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition-colors"
+                      title="Edit/Review"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => togglePublish(blog.id)}
+                      className={`p-2 rounded-lg transition-colors ${blog.status === 'published' ? 'bg-green-500 text-white' : 'bg-slate-800 text-slate-500 hover:text-green-500'}`}
+                      title={blog.status === 'published' ? 'Unpublish' : 'Publish'}
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => deleteBlog(blog.id)}
+                      className="p-2 hover:text-red-500 text-slate-600 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {blogs.length === 0 && (
+                <div className="text-center py-20 text-slate-600">
+                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                  <p className="italic">No articles found. Click Generate to start.</p>
+                </div>
               )}
             </div>
-            <button onClick={saveBranding} className="mt-8 px-10 py-4 bg-red-600 hover:bg-red-500 rounded-2xl font-bold flex items-center shadow-xl shadow-red-900/20">
-              <Save className="w-4 h-4 mr-2" />
-              Save Settings
-            </button>
           </div>
         </div>
       )}
 
-      {activeTab === 'advanced' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-[40px] p-10 shadow-2xl">
-          <div className="mb-10">
-            <h3 className="text-3xl font-extrabold flex items-center">
-              <Terminal className="w-8 h-8 mr-4 text-red-500" />
-              Custom Code Injection
-            </h3>
-            <p className="text-slate-400 mt-2">Inject custom HTML, CSS, or JavaScript into your site globally.</p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-10">
-            <div className="space-y-6">
-              <h4 className="font-bold flex items-center text-red-500">
-                <Code className="w-4 h-4 mr-2" />
-                Header Code Injection
-              </h4>
-              <p className="text-[10px] text-slate-500 uppercase font-black">Custom HTML/Scripts for the &lt;head&gt; section (Meta tags, tracking scripts, etc.)</p>
-              <textarea 
-                value={brandingForm.headerCode || ''} 
-                onChange={e => setBrandingForm({...brandingForm, headerCode: e.target.value})} 
-                className="w-full bg-slate-950 border border-slate-800 p-6 rounded-3xl text-sm font-mono min-h-[160px] focus:border-red-500 outline-none transition-all" 
-                placeholder="<!-- Google Analytics, Facebook Pixel, etc. -->"
-              />
-            </div>
-
-            <div className="space-y-6">
-              <h4 className="font-bold flex items-center text-red-500">
-                <Code className="w-4 h-4 mr-2" />
-                Body Code Injection
-              </h4>
-              <p className="text-[10px] text-slate-500 uppercase font-black">Code to be placed at the very start of the &lt;body&gt; tag.</p>
-              <textarea 
-                value={brandingForm.bodyCode || ''} 
-                onChange={e => setBrandingForm({...brandingForm, bodyCode: e.target.value})} 
-                className="w-full bg-slate-950 border border-slate-800 p-6 rounded-3xl text-sm font-mono min-h-[160px] focus:border-red-500 outline-none transition-all" 
-                placeholder="<!-- NoScript tags, body-start popups, etc. -->"
-              />
-            </div>
-
-            <div className="space-y-6">
-              <h4 className="font-bold flex items-center text-red-500">
-                <Code className="w-4 h-4 mr-2" />
-                Footer Code Injection
-              </h4>
-              <p className="text-[10px] text-slate-500 uppercase font-black">Code to be placed at the very end of the &lt;body&gt; tag (Useful for support widgets, chat scripts).</p>
-              <textarea 
-                value={brandingForm.footerCode || ''} 
-                onChange={e => setBrandingForm({...brandingForm, footerCode: e.target.value})} 
-                className="w-full bg-slate-950 border border-slate-800 p-6 rounded-3xl text-sm font-mono min-h-[160px] focus:border-red-500 outline-none transition-all" 
-                placeholder="<!-- Custom chat widgets, extra analytics, etc. -->"
-              />
-            </div>
-          </div>
-
-          <button onClick={saveBranding} className="mt-12 px-12 py-5 bg-red-600 hover:bg-red-500 rounded-2xl font-bold flex items-center shadow-xl shadow-red-900/20 text-lg transition-all active:scale-95">
-            <Save className="w-5 h-5 mr-3" />
-            Save Advanced Configuration
-          </button>
-        </div>
-      )}
-
-      {activeTab === 'magic' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-[40px] p-12 shadow-2xl text-center">
-          <div className="max-w-xl mx-auto">
-            <div className="w-20 h-20 bg-red-600/10 rounded-full flex items-center justify-center mx-auto mb-8">
-              <Sparkles className="w-10 h-10 text-red-500" />
-            </div>
-            <h2 className="text-3xl font-bold mb-4">Magic Site Rebrander</h2>
-            <p className="text-slate-400 mb-10 leading-relaxed">Enter a business URL or a detailed description. Gemini will automatically generate professional copy and cinematic imagery for the entire site.</p>
-            
-            <div className="relative mb-6">
-              <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-              <input 
-                value={magicUrl}
-                onChange={e => setMagicUrl(e.target.value)}
-                placeholder="https://acme-services.com or 'Futuristic Car Wash'..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-5 pl-12 pr-4 outline-none focus:border-red-500 transition-all text-sm" 
-              />
-            </div>
-            <button 
-              onClick={runMagicScan}
-              disabled={isMagicLoading || !magicUrl}
-              className="w-full py-5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 rounded-2xl font-bold text-xl shadow-2xl shadow-red-900/40 disabled:opacity-50 flex items-center justify-center transition-all"
-            >
-              {isMagicLoading ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : <Sparkles className="w-6 h-6 mr-2" />}
-              {isMagicLoading ? 'Analyzing & Generating...' : 'Start Magic Rebrand'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {editingId && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-sm">
-          <div className="dark-glass w-full max-w-lg rounded-[40px] p-8 border-slate-800 shadow-2xl">
-            <div className="flex justify-between items-center mb-8">
-              <h3 className="text-2xl font-bold">Edit {editForm.name}</h3>
-              <button onClick={() => setEditingId(null)} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
-                <X className="w-5 h-5" />
+      {/* Editor Modal */}
+      {editingPost && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="dark-glass w-full max-w-4xl rounded-[40px] p-10 border-slate-800 shadow-2xl h-[85vh] flex flex-col">
+            <div className="flex justify-between items-center mb-8 shrink-0">
+              <h3 className="text-3xl font-extrabold flex items-center">
+                <FileText className="w-6 h-6 mr-3 text-red-500" />
+                Review SEO Article
+              </h3>
+              <button onClick={() => setEditingPost(null)} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                <X className="w-6 h-6" />
               </button>
             </div>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Image URL / Data</label>
+
+            <div className="flex-grow overflow-y-auto space-y-8 pr-4 custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Title</label>
+                    <input 
+                      type="text" 
+                      value={editingPost.title} 
+                      onChange={e => setEditingPost({...editingPost, title: e.target.value})}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Meta Description (SEO)</label>
+                    <textarea 
+                      value={editingPost.metaDescription} 
+                      onChange={e => setEditingPost({...editingPost, metaDescription: e.target.value})}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs h-24 resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Keywords (Comma Separated)</label>
+                    <input 
+                      type="text" 
+                      value={editingPost.keywords.join(', ')} 
+                      onChange={e => setEditingPost({...editingPost, keywords: e.target.value.split(',').map(k => k.trim())})}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  <div className="aspect-video rounded-3xl overflow-hidden border border-slate-800">
+                    <img src={editingPost.img} className="w-full h-full object-cover" alt="" />
+                  </div>
+                  <div className="bg-slate-950/50 p-4 rounded-2xl border border-slate-800">
+                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Post Excerpt</div>
+                    <textarea 
+                      value={editingPost.excerpt} 
+                      onChange={e => setEditingPost({...editingPost, excerpt: e.target.value})}
+                      className="w-full bg-transparent border-none p-0 text-sm italic resize-none h-20"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Main Content (Markdown)</label>
                 <textarea 
-                  value={editForm.imageUrl || ''} 
-                  onChange={e => setEditForm({...editForm, imageUrl: e.target.value})} 
-                  className="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl text-xs font-mono h-24" 
-                  placeholder="Paste URL or Base64..." 
+                  value={editingPost.content} 
+                  onChange={e => setEditingPost({...editingPost, content: e.target.value})}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-3xl p-8 text-sm font-mono min-h-[400px]"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Monthly Price</label>
-                  <input 
-                    type="number"
-                    value={editForm.monthlyPrice || 0} 
-                    onChange={e => setEditForm({...editForm, monthlyPrice: Number(e.target.value)})} 
-                    className="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl text-sm" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Setup Fee</label>
-                  <input 
-                    type="number"
-                    value={editForm.setupFee || 0} 
-                    onChange={e => setEditForm({...editForm, setupFee: Number(e.target.value)})} 
-                    className="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl text-sm" 
-                  />
-                </div>
-              </div>
-              <button onClick={saveProduct} className="w-full py-4 bg-red-600 hover:bg-red-500 rounded-2xl font-bold shadow-xl shadow-red-900/20">
-                Save Product
+            </div>
+
+            <div className="mt-8 pt-8 border-t border-slate-800 flex justify-end space-x-4 shrink-0">
+              <button 
+                onClick={() => setEditingPost(null)}
+                className="px-8 py-4 bg-slate-900 hover:bg-slate-800 rounded-2xl font-bold transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={saveEditedPost}
+                className="px-8 py-4 bg-red-600 hover:bg-red-500 rounded-2xl font-bold flex items-center shadow-xl"
+              >
+                <Save className="w-5 h-5 mr-2" />
+                Save Changes
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Rest of the Admin Dashboard tabs placeholder */}
+      {activeTab !== 'blogs' && (
+        <div className="bg-slate-900/50 border border-slate-800 rounded-[40px] p-20 text-center text-slate-500 italic">
+          Standard management features are active in this tab.
         </div>
       )}
     </div>

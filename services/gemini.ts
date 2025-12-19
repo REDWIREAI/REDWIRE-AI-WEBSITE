@@ -1,9 +1,73 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
+import { SiteSettings, Product } from "../types";
 
 // Helper to safely get API key and initialize AI client
 const getAIClient = () => {
   const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : '';
   return new GoogleGenAI({ apiKey: apiKey || '' });
+};
+
+/**
+ * Generates an SEO-optimized blog post based on the site's branding and products.
+ */
+export const generateBlogContent = async (siteSettings: SiteSettings, products: Product[]) => {
+  try {
+    const ai = getAIClient();
+    const productList = products.map(p => `- ${p.name}: ${p.description}`).join('\n');
+    
+    const prompt = `You are a world-class SEO content strategist and writer for "${siteSettings.siteName}".
+    Context: ${siteSettings.heroHeading}. ${siteSettings.heroSubheading}.
+    Products:
+    ${productList}
+    
+    TASK: Write a highly SEO-optimized blog post for small business owners.
+    
+    REQUIREMENTS:
+    - Title: Catchy, high-CTR, includes a primary keyword.
+    - Structure: Use Markdown with clear H1, H2, and H3 subheadings. 
+    - Content: Minimum 500 words. Informative, solves a pain point, and includes a call to action.
+    - SEO Meta: Generate a concise meta description (max 160 chars) and 5-8 relevant keywords.
+    - Image: Create a detailed prompt for a professional tech illustration that captures the essence of this specific topic.
+    
+    Return the response ONLY as a JSON object with:
+    - title: string
+    - excerpt: string (2 sentences)
+    - content: string (Markdown)
+    - metaDescription: string
+    - keywords: string[]
+    - imagePrompt: string
+    - readTime: string (e.g. "4 min read")`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-pro-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            excerpt: { type: Type.STRING },
+            content: { type: Type.STRING },
+            metaDescription: { type: Type.STRING },
+            keywords: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            },
+            imagePrompt: { type: Type.STRING },
+            readTime: { type: Type.STRING }
+          },
+          required: ["title", "excerpt", "content", "metaDescription", "keywords", "imagePrompt", "readTime"]
+        }
+      }
+    });
+
+    return JSON.parse(response.text || '{}');
+  } catch (error) {
+    console.error("Blog Generation Error:", error);
+    throw error;
+  }
 };
 
 export const generateBusinessSummary = async (businessName: string, industry: string) => {

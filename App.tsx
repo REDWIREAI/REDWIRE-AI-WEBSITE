@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, createContext, useContext } from 'react';
 import { HashRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { 
@@ -36,7 +37,7 @@ import Blog from './pages/Blog';
 import Legal from './pages/Legal';
 
 // Types & Data
-import { User, SiteSettings, Product, ProductType } from './types';
+import { User, SiteSettings, Product, ProductType, BlogPost } from './types';
 import { INITIAL_PRODUCTS } from './constants';
 import { generateAIImage, generateSiteBranding } from './services/gemini';
 import { db } from './services/db';
@@ -44,7 +45,8 @@ import { db } from './services/db';
 const STORAGE_KEYS = {
   SETTINGS: 'site_settings',
   PRODUCTS: 'products',
-  ADMIN_TOKEN: 'rw_admin_active'
+  ADMIN_TOKEN: 'rw_admin_active',
+  BLOGS: 'site_blogs'
 };
 
 const GET_STARTED_URL = "https://api.leadconnectorhq.com/widget/form/BGm7Yk9CCULsw34XwYeM?notrack=true";
@@ -108,10 +110,16 @@ const BackToTopButton = () => {
 
 export const BrandText = ({ name, logoUrl, onLogoClick }: { name: string; logoUrl?: string; onLogoClick?: () => void }) => {
   const words = name.toUpperCase().split(' ');
+  const handleClick = () => {
+    if (typeof onLogoClick === 'function') {
+      onLogoClick();
+    }
+  };
+
   return (
     <div 
-      className={`flex items-center space-x-3 relative ${onLogoClick ? 'group cursor-pointer' : ''}`} 
-      onClick={() => onLogoClick?.()}
+      className={`flex items-center space-x-3 relative ${typeof onLogoClick === 'function' ? 'group cursor-pointer' : ''}`} 
+      onClick={handleClick}
     >
       {logoUrl ? (
         <img src={logoUrl} alt={name} className="h-10 w-auto object-contain transition-transform group-hover:scale-105" />
@@ -124,7 +132,7 @@ export const BrandText = ({ name, logoUrl, onLogoClick }: { name: string; logoUr
           ))}
         </span>
       )}
-      {onLogoClick && (
+      {typeof onLogoClick === 'function' && (
         <div className="absolute -right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 p-1 rounded-md">
           <Edit2 className="w-3 h-3 text-white" />
         </div>
@@ -163,7 +171,7 @@ const ImageUploadModal = ({
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onloadend = () => { 
-        onSave(reader.result as string); 
+        if (typeof onSave === 'function') onSave(reader.result as string); 
         onClose(); 
       };
       reader.readAsDataURL(file);
@@ -177,16 +185,19 @@ const ImageUploadModal = ({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file) processFile(file);
@@ -197,7 +208,7 @@ const ImageUploadModal = ({
     setIsGenerating(true);
     try {
       const imageUrl = await generateAIImage(aiPrompt, false);
-      onSave(imageUrl);
+      if (typeof onSave === 'function') onSave(imageUrl);
       onClose();
     } catch (err) {
       alert("Failed to generate image. Please try again.");
@@ -206,16 +217,30 @@ const ImageUploadModal = ({
     }
   };
 
+  const handleRemove = () => {
+    if (typeof onSave === 'function') {
+      onSave('');
+    }
+    onClose();
+  };
+
+  const handleUrlSave = () => {
+    if (typeof onSave === 'function') {
+      onSave(url);
+    }
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
       <div className="dark-glass w-full max-w-lg rounded-[40px] p-8 border-slate-800 shadow-2xl scale-in-center">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-2xl font-bold flex items-center">
+          <h3 className="text-2xl font-bold flex items-center text-white">
             <Sparkles className="w-6 h-6 mr-2 text-red-500" />
             {title}
           </h3>
           <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-slate-400" />
           </button>
         </div>
 
@@ -240,13 +265,13 @@ const ImageUploadModal = ({
               onDrop={handleDrop}
               className={`border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center transition-all group cursor-pointer ${
                 isDragging 
-                ? 'border-red-500 bg-red-600/10 scale-[1.02]' 
+                ? 'border-red-500 bg-red-600/10 scale-[1.02] shadow-[0_0_20px_rgba(220,38,38,0.2)]' 
                 : 'border-slate-800 hover:border-red-500/50 hover:bg-red-500/5'
               }`}
             >
               <ImageIcon className={`w-12 h-12 mb-3 transition-colors ${isDragging ? 'text-red-500' : 'text-slate-600 group-hover:text-red-500'}`} />
-              <span className={`text-sm font-bold transition-colors ${isDragging ? 'text-red-400' : 'text-slate-400'}`}>
-                {isDragging ? 'Drop to Upload' : 'Drop image here or click'}
+              <span className={`text-sm font-bold text-center transition-colors ${isDragging ? 'text-red-400' : 'text-slate-400'}`}>
+                {isDragging ? 'Drop to Upload' : 'Drop image here or click to browse'}
               </span>
               <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
             </div>
@@ -260,13 +285,13 @@ const ImageUploadModal = ({
               <input 
                 type="text" 
                 placeholder="Paste image URL here..." 
-                className="w-full bg-slate-900 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-red-500 transition-all text-sm"
+                className="w-full bg-slate-900 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-red-500 transition-all text-sm text-white"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
               />
               <button 
-                onClick={() => { onSave(url); onClose(); }}
-                className="w-full mt-4 py-4 bg-red-600 hover:bg-red-500 rounded-2xl font-bold transition-all shadow-lg"
+                onClick={handleUrlSave}
+                className="w-full mt-4 py-4 bg-red-600 hover:bg-red-500 rounded-2xl font-bold transition-all shadow-lg text-white"
               >
                 Apply URL
               </button>
@@ -279,7 +304,7 @@ const ImageUploadModal = ({
                 <label className="block text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-2">Describe what you want to generate</label>
                 <textarea 
                   placeholder="e.g. A futuristic robot helping customers, high tech, cinematic..." 
-                  className="w-full bg-transparent outline-none text-sm resize-none min-h-[100px]"
+                  className="w-full bg-transparent outline-none text-sm text-white resize-none min-h-[100px]"
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                 />
@@ -287,7 +312,7 @@ const ImageUploadModal = ({
               <button 
                 onClick={handleAIGenerate}
                 disabled={isGenerating || !aiPrompt}
-                className="w-full py-5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 rounded-2xl font-bold transition-all shadow-xl shadow-red-900/20 disabled:opacity-50 flex items-center justify-center"
+                className="w-full py-5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 rounded-2xl font-bold transition-all shadow-xl shadow-red-900/20 disabled:opacity-50 flex items-center justify-center text-white"
               >
                 {isGenerating ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Sparkles className="w-5 h-5 mr-2" />}
                 {isGenerating ? 'Generating...' : 'Generate with Gemini'}
@@ -297,11 +322,11 @@ const ImageUploadModal = ({
 
           {currentValue && (
             <button 
-              onClick={() => { onSave(''); onClose(); }}
+              onClick={handleRemove}
               className="w-full py-3 bg-slate-900/50 hover:bg-red-950/20 text-red-500 border border-slate-800 hover:border-red-500/50 rounded-2xl font-bold transition-all text-xs flex items-center justify-center space-x-2 group"
             >
               <Trash2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-              <span>Remove Image</span>
+              <span>Remove Current Image</span>
             </button>
           )}
         </div>
@@ -350,7 +375,7 @@ const Navbar = ({ settings, onLogoClick, isAdminMode, onExitAdmin }: {
             </div>
           </div>
           <Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link>
-          <Link to="/affiliate" className="hover:text-white transition-colors">Affiliates</Link>
+          <Link to="/blog" className="hover:text-white transition-colors">Blog</Link>
           
           {isAdminMode ? (
             <div className="flex items-center space-x-3">
@@ -380,7 +405,7 @@ const Navbar = ({ settings, onLogoClick, isAdminMode, onExitAdmin }: {
         <div className="md:hidden absolute top-24 left-6 right-6 bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-2xl z-40">
           <Link to="/" onClick={() => setIsOpen(false)} className="block text-lg">Home</Link>
           <Link to="/pricing" onClick={() => setIsOpen(false)} className="block text-lg">Pricing</Link>
-          <Link to="/affiliate" onClick={() => setIsOpen(false)} className="block text-lg">Affiliates</Link>
+          <Link to="/blog" onClick={() => setIsOpen(false)} className="block text-lg">Blog</Link>
           {isAdminMode && <Link to="/congobaby1!1!" onClick={() => setIsOpen(false)} className="block text-lg text-red-500">Admin Dashboard</Link>}
           <a 
             href={GET_STARTED_URL}
@@ -411,6 +436,7 @@ const App: React.FC = () => {
   const [isAdminMode, setIsAdminMode] = useState(sessionStorage.getItem(STORAGE_KEYS.ADMIN_TOKEN) === 'true');
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
     siteName: "Red Wire AI", 
     primaryButtonColor: "#dc2626",
@@ -498,12 +524,14 @@ const App: React.FC = () => {
   useEffect(() => {
     async function hydrate() {
       try {
-        const [savedSettings, savedProducts] = await Promise.all([
+        const [savedSettings, savedProducts, savedBlogs] = await Promise.all([
           db.get<SiteSettings>(STORAGE_KEYS.SETTINGS),
-          db.get<Product[]>(STORAGE_KEYS.PRODUCTS)
+          db.get<Product[]>(STORAGE_KEYS.PRODUCTS),
+          db.get<BlogPost[]>(STORAGE_KEYS.BLOGS)
         ]);
         if (savedSettings) setSiteSettings(prev => ({ ...prev, ...savedSettings }));
         if (savedProducts) setProducts(savedProducts);
+        if (savedBlogs) setBlogs(savedBlogs);
       } catch (e) {
         console.error("Hydration failed", e);
       } finally {
@@ -522,12 +550,12 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isHydrated) db.save(STORAGE_KEYS.SETTINGS, siteSettings);
-  }, [siteSettings, isHydrated]);
-
-  useEffect(() => {
-    if (isHydrated) db.save(STORAGE_KEYS.PRODUCTS, products);
-  }, [products, isHydrated]);
+    if (isHydrated) {
+      db.save(STORAGE_KEYS.SETTINGS, siteSettings);
+      db.save(STORAGE_KEYS.PRODUCTS, products);
+      db.save(STORAGE_KEYS.BLOGS, blogs);
+    }
+  }, [siteSettings, products, blogs, isHydrated]);
 
   const [uploadModal, setUploadModal] = useState<{ 
     isOpen: boolean; title: string; field?: keyof SiteSettings; productId?: ProductType;
@@ -597,7 +625,7 @@ const App: React.FC = () => {
                 {n.type === 'sale' ? <Bell className="w-5 h-5" /> : n.type === 'affiliate' ? <MessageSquare className="w-5 h-5" /> : <Loader2 className="w-5 h-5" />}
               </div>
               <div>
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Text Notification Sent</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Notification Event</div>
                 <p className="text-sm font-bold text-white leading-tight">{n.message}</p>
               </div>
             </div>
@@ -618,7 +646,7 @@ const App: React.FC = () => {
             <Route path="/product/:id" element={<ProductDetail products={products} onImageClick={isAdminMode ? (id) => setUploadModal({ isOpen: true, title: 'Update Product Image', productId: id }) : undefined} settings={siteSettings} />} />
             <Route path="/affiliate" element={<AffiliateProgram settings={siteSettings} />} />
             <Route path="/contact" element={<Contact settings={siteSettings} />} />
-            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog" element={<Blog blogs={blogs} />} />
             <Route path="/legal/:type" element={<Legal />} />
             <Route path="/congobaby1!1!" element={
               <AdminDashboard 
@@ -626,7 +654,9 @@ const App: React.FC = () => {
                 setProducts={setProducts} 
                 siteSettings={siteSettings} 
                 setSiteSettings={setSiteSettings} 
-                onMagicScan={handleFullMagicUpdate} 
+                onMagicScan={handleFullMagicUpdate}
+                blogs={blogs}
+                setBlogs={setBlogs}
               />
             } />
             <Route path="*" element={<Navigate to="/" />} />
@@ -671,7 +701,7 @@ const App: React.FC = () => {
         </footer>
         <BackToTopButton />
       </div>
-    </main>
+    </NotificationContext.Provider>
   );
 };
 

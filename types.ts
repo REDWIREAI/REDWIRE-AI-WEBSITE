@@ -16,6 +16,19 @@ export interface Product {
   imageUrl?: string;
 }
 
+export interface BlogPost {
+  id: string;
+  title: string;
+  date: string;
+  excerpt: string;
+  content: string;
+  img: string;
+  status: 'draft' | 'published';
+  metaDescription: string;
+  keywords: string[];
+  readTime: string;
+}
+
 export interface SiteSettings {
   // Global / Brand
   siteName: string;

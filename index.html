@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,15 +13,40 @@
       var search = window.location.search;
       var hash = window.location.hash;
       
-      // If we are at a clean path (like /congobaby1!1!) and not just the root
       if (path && path !== '/' && !path.includes('.') && !hash) {
         window.location.replace(window.location.origin + '/#' + path + search);
       }
     })();
   </script>
-  <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+  
+  <!-- Modern Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          animation: {
+            'admin-pulse': 'pulse-red 2s infinite ease-in-out',
+          },
+          keyframes: {
+            'pulse-red': {
+              '0%, 100%': { opacity: '1' },
+              '50%': { opacity: '0.6' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
+  
+  <style type="text/css">
     body { font-family: 'Inter', sans-serif; }
     .glass {
       background: rgba(255, 255, 255, 0.05);
@@ -32,14 +58,20 @@
       backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.05);
     }
-    @keyframes pulse-red {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
+    
+    /* Custom Scrollbar for SEO Editor */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
     }
-    .animate-admin-pulse {
-      animation: pulse-red 2s infinite ease-in-out;
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #dc2626;
+      border-radius: 10px;
     }
   </style>
+
 <script type="importmap">
 {
   "imports": {

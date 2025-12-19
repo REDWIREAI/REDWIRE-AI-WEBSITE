@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Bot, Mic, PhoneCall, Globe, CheckCircle2, Zap, ArrowRight, ShieldCheck, Edit3, ImageOff } from 'lucide-react';
@@ -47,6 +48,12 @@ const ProductDetail = ({ products, onImageClick, settings }: ProductDetailProps)
   const demoUrl = getDemoUrl();
   const isPhoneDemo = product.id === ProductType.VOICE_AGENT;
   const isSmartWebsite = product.id === ProductType.SMART_WEBSITE;
+
+  const handleImageUpdate = () => {
+    if (typeof onImageClick === 'function') {
+      onImageClick(product.id);
+    }
+  };
 
   return (
     <div className="pt-32 pb-24">
@@ -108,9 +115,9 @@ const ProductDetail = ({ products, onImageClick, settings }: ProductDetailProps)
                 </div>
               )}
               
-              {onImageClick && (
+              {typeof onImageClick === 'function' && (
                 <div 
-                  onClick={() => onImageClick(product.id)}
+                  onClick={handleImageUpdate}
                   className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-all duration-300 backdrop-blur-sm bg-black/40"
                 >
                   <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300">
