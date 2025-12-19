@@ -16,7 +16,9 @@ import {
   Edit2,
   Bell,
   CheckCircle,
-  MessageSquare
+  MessageSquare,
+  LogOut,
+  ShieldCheck
 } from 'lucide-react';
 
 // Pages
@@ -42,7 +44,8 @@ import { db } from './services/db';
 
 const STORAGE_KEYS = {
   SETTINGS: 'site_settings',
-  PRODUCTS: 'products'
+  PRODUCTS: 'products',
+  ADMIN_TOKEN: 'rw_admin_active'
 };
 
 const GET_STARTED_URL = "https://api.leadconnectorhq.com/widget/form/BGm7Yk9CCULsw34XwYeM?notrack=true";
@@ -107,7 +110,7 @@ const BackToTopButton = () => {
 export const BrandText = ({ name, logoUrl, onLogoClick }: { name: string; logoUrl?: string; onLogoClick?: () => void }) => {
   const words = name.toUpperCase().split(' ');
   return (
-    <div className="flex items-center space-x-3 group relative cursor-pointer" onClick={onLogoClick}>
+    <div className={`flex items-center space-x-3 relative ${onLogoClick ? 'group cursor-pointer' : ''}`} onClick={onLogoClick}>
       {logoUrl ? (
         <img src={logoUrl} alt={name} className="h-10 w-auto object-contain transition-transform group-hover:scale-105" />
       ) : (
@@ -305,7 +308,12 @@ const ImageUploadModal = ({
   );
 };
 
-const Navbar = ({ settings, onLogoClick }: { settings: SiteSettings; onLogoClick: () => void }) => {
+const Navbar = ({ settings, onLogoClick, isAdminMode, onExitAdmin }: { 
+  settings: SiteSettings; 
+  onLogoClick?: () => void; 
+  isAdminMode: boolean;
+  onExitAdmin: () => void;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   if (['/login', '/checkout', '/onboarding'].some(path => location.pathname.includes(path))) return null;
@@ -317,7 +325,15 @@ const Navbar = ({ settings, onLogoClick }: { settings: SiteSettings; onLogoClick
           <Link to="/">
             <BrandText name={settings.siteName} logoUrl={settings.logoImageUrl} onLogoClick={onLogoClick} />
           </Link>
+          
+          {isAdminMode && (
+            <div className="ml-4 flex items-center bg-red-600/10 border border-red-600/20 rounded-full px-3 py-1 animate-pulse">
+              <ShieldCheck className="w-3.5 h-3.5 text-red-500 mr-1.5" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-red-500">Admin Mode Active</span>
+            </div>
+          )}
         </div>
+        
         <div className="hidden md:flex items-center space-x-8 text-sm font-bold text-slate-300">
           <Link to="/" className="hover:text-white transition-colors">Home</Link>
           <div className="group relative cursor-pointer hover:text-white py-2">
@@ -333,15 +349,28 @@ const Navbar = ({ settings, onLogoClick }: { settings: SiteSettings; onLogoClick
           </div>
           <Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link>
           <Link to="/affiliate" className="hover:text-white transition-colors">Affiliates</Link>
-          <a 
-            href={GET_STARTED_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ backgroundColor: settings.primaryButtonColor, color: settings.primaryButtonTextColor }}
-            className="px-4 py-2 rounded-lg font-bold transition-all shadow-lg shadow-red-900/20"
-          >
-            Get Started
-          </a>
+          
+          {isAdminMode ? (
+            <div className="flex items-center space-x-3">
+              <Link to="/congobaby1!1!" className="text-red-500 hover:text-red-400">Dashboard</Link>
+              <button 
+                onClick={onExitAdmin}
+                className="flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-black uppercase"
+              >
+                <LogOut className="w-3.5 h-3.5 mr-2" /> Exit Admin
+              </button>
+            </div>
+          ) : (
+            <a 
+              href={GET_STARTED_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ backgroundColor: settings.primaryButtonColor, color: settings.primaryButtonTextColor }}
+              className="px-4 py-2 rounded-lg font-bold transition-all shadow-lg shadow-red-900/20"
+            >
+              Get Started
+            </a>
+          )}
         </div>
         <button className="md:hidden text-slate-300" onClick={() => setIsOpen(!isOpen)}>{isOpen ? <X /> : <Menu />}</button>
       </div>
@@ -350,6 +379,7 @@ const Navbar = ({ settings, onLogoClick }: { settings: SiteSettings; onLogoClick
           <Link to="/" onClick={() => setIsOpen(false)} className="block text-lg">Home</Link>
           <Link to="/pricing" onClick={() => setIsOpen(false)} className="block text-lg">Pricing</Link>
           <Link to="/affiliate" onClick={() => setIsOpen(false)} className="block text-lg">Affiliates</Link>
+          {isAdminMode && <Link to="/congobaby1!1!" onClick={() => setIsOpen(false)} className="block text-lg text-red-500">Admin Dashboard</Link>}
           <a 
             href={GET_STARTED_URL}
             target="_blank"
@@ -360,6 +390,14 @@ const Navbar = ({ settings, onLogoClick }: { settings: SiteSettings; onLogoClick
           >
             Get Started
           </a>
+          {isAdminMode && (
+            <button 
+              onClick={() => { onExitAdmin(); setIsOpen(false); }}
+              className="w-full py-3 bg-slate-800 rounded-xl font-bold text-sm"
+            >
+              Exit Admin Mode
+            </button>
+          )}
         </div>
       )}
     </nav>
@@ -368,6 +406,7 @@ const Navbar = ({ settings, onLogoClick }: { settings: SiteSettings; onLogoClick
 
 const App: React.FC = () => {
   const [isHydrated, setIsHydrated] = useState(false);
+  const [isAdminMode, setIsAdminMode] = useState(sessionStorage.getItem(STORAGE_KEYS.ADMIN_TOKEN) === 'true');
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
@@ -398,6 +437,21 @@ const App: React.FC = () => {
     footerCode: ""
   });
 
+  const location = useLocation();
+
+  // Admin activation logic
+  useEffect(() => {
+    if (location.pathname === '/congobaby1!1!') {
+      setIsAdminMode(true);
+      sessionStorage.setItem(STORAGE_KEYS.ADMIN_TOKEN, 'true');
+    }
+  }, [location.pathname]);
+
+  const onExitAdmin = () => {
+    setIsAdminMode(false);
+    sessionStorage.removeItem(STORAGE_KEYS.ADMIN_TOKEN);
+  };
+
   // Inject custom code into head and body
   useEffect(() => {
     if (!isHydrated) return;
@@ -421,7 +475,6 @@ const App: React.FC = () => {
         const documentFragment = range.createContextualFragment(code);
         container.appendChild(documentFragment);
         
-        // Contextual fragment doesn't execute <script> tags, so we must manually find and execute them
         const scripts = container.querySelectorAll('script');
         scripts.forEach(oldScript => {
           const newScript = document.createElement('script');
@@ -525,96 +578,106 @@ const App: React.FC = () => {
 
   return (
     <NotificationContext.Provider value={{ notify }}>
-      <HashRouter>
-        <ScrollToTop />
-        <div className="min-h-screen relative">
-          <Navbar settings={siteSettings} onLogoClick={() => setUploadModal({ isOpen: true, title: 'Update Logo', field: 'logoImageUrl' })} />
-          
-          {/* Notification Overlay */}
-          <div className="fixed top-24 right-6 z-[200] space-y-4 pointer-events-none">
-            {notifications.map((n) => (
-              <div key={n.id} className="w-80 p-4 dark-glass border-red-500/30 rounded-2xl shadow-2xl animate-in slide-in-from-right-8 duration-300 pointer-events-auto flex items-start space-x-4 border">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${n.type === 'sale' ? 'bg-green-500/20 text-green-500' : n.type === 'affiliate' ? 'bg-red-600/20 text-red-600' : 'bg-blue-500/20 text-blue-500'}`}>
-                  {n.type === 'sale' ? <Bell className="w-5 h-5" /> : n.type === 'affiliate' ? <MessageSquare className="w-5 h-5" /> : <Loader2 className="w-5 h-5" />}
-                </div>
-                <div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Text Notification Sent</div>
-                  <p className="text-sm font-bold text-white leading-tight">{n.message}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <ImageUploadModal 
-            isOpen={uploadModal.isOpen} onClose={() => setUploadModal({ ...uploadModal, isOpen: false })} 
-            onSave={handleAssetSave} title={uploadModal.title} currentValue={uploadModal.productId ? products.find(p => p.id === uploadModal.productId)?.imageUrl : siteSettings[uploadModal.field!]}
-          />
-          <main>
-            <Routes>
-              <Route path="/" element={<Home settings={siteSettings} onImageClick={(field) => setUploadModal({ isOpen: true, title: 'Update Image', field })} />} />
-              <Route path="/pricing" element={<Pricing products={products} settings={siteSettings} />} />
-              <Route path="/checkout" element={<Checkout products={products} />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/product/:id" element={<ProductDetail products={products} onImageClick={(id) => setUploadModal({ isOpen: true, title: 'Update Product Image', productId: id })} settings={siteSettings} />} />
-              <Route path="/affiliate" element={<AffiliateProgram settings={siteSettings} />} />
-              <Route path="/contact" element={<Contact settings={siteSettings} />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/legal/:type" element={<Legal />} />
-              <Route path="/congobaby1!1!" element={
-                <AdminDashboard 
-                  products={products} 
-                  setProducts={setProducts} 
-                  siteSettings={siteSettings} 
-                  setSiteSettings={setSiteSettings} 
-                  onMagicScan={handleFullMagicUpdate} 
-                />
-              } />
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </main>
-          <footer className="bg-slate-950 border-t border-slate-900 py-12 px-6">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 text-sm text-slate-400">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2 text-white">
-                  <BrandText name={siteSettings.siteName} logoUrl={siteSettings.logoImageUrl} />
-                </div>
-                <p>Empowering small businesses with AI automation.</p>
+      <div className="min-h-screen relative">
+        <Navbar 
+          settings={siteSettings} 
+          onLogoClick={isAdminMode ? () => setUploadModal({ isOpen: true, title: 'Update Logo', field: 'logoImageUrl' }) : undefined} 
+          isAdminMode={isAdminMode}
+          onExitAdmin={onExitAdmin}
+        />
+        
+        {/* Notification Overlay */}
+        <div className="fixed top-24 right-6 z-[200] space-y-4 pointer-events-none">
+          {notifications.map((n) => (
+            <div key={n.id} className="w-80 p-4 dark-glass border-red-500/30 rounded-2xl shadow-2xl animate-in slide-in-from-right-8 duration-300 pointer-events-auto flex items-start space-x-4 border">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${n.type === 'sale' ? 'bg-green-500/20 text-green-500' : n.type === 'affiliate' ? 'bg-red-600/20 text-red-600' : 'bg-blue-500/20 text-blue-500'}`}>
+                {n.type === 'sale' ? <Bell className="w-5 h-5" /> : n.type === 'affiliate' ? <MessageSquare className="w-5 h-5" /> : <Loader2 className="w-5 h-5" />}
               </div>
               <div>
-                <h4 className="font-bold mb-4 text-white">Products</h4>
-                <ul className="space-y-2">
-                  <li><Link to="/product/chatbot" className="hover:text-red-500 transition-colors">AI Chatbot</Link></li>
-                  <li><Link to="/product/voicebot" className="hover:text-red-500 transition-colors">Website Voicebot</Link></li>
-                  <li><Link to="/product/voice-agent" className="hover:text-red-500 transition-colors">AI Voice Agent</Link></li>
-                  <li><Link to="/product/smart-website" className="hover:text-red-500 transition-colors">Smart Website</Link></li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-bold mb-4 text-white">Company</h4>
-                <ul className="space-y-2">
-                  <li><Link to="/affiliate" className="hover:text-red-500 transition-colors">Affiliates</Link></li>
-                  <li><Link to="/contact" className="hover:text-red-500 transition-colors">Contact</Link></li>
-                  <li><Link to="/blog" className="hover:text-red-500 transition-colors">Blog</Link></li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-bold mb-4 text-white">Legal</h4>
-                <ul className="space-y-2">
-                  <li><Link to="/legal/privacy" className="hover:text-red-500 transition-colors">Privacy Policy</Link></li>
-                  <li><Link to="/legal/terms" className="hover:text-red-500 transition-colors">Terms of Service</Link></li>
-                  <li><Link to="/legal/affiliate-terms" className="hover:text-red-500 transition-colors">Affiliate Terms</Link></li>
-                  <li><Link to="/legal/cookie" className="hover:text-red-500 transition-colors">Cookie Policy</Link></li>
-                  <li><Link to="/legal/disclaimer" className="hover:text-red-500 transition-colors">Disclaimer</Link></li>
-                </ul>
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Text Notification Sent</div>
+                <p className="text-sm font-bold text-white leading-tight">{n.message}</p>
               </div>
             </div>
-          </footer>
-          <BackToTopButton />
+          ))}
         </div>
-      </HashRouter>
-    </NotificationContext.Provider>
+
+        <ImageUploadModal 
+          isOpen={uploadModal.isOpen} onClose={() => setUploadModal({ ...uploadModal, isOpen: false })} 
+          onSave={handleAssetSave} title={uploadModal.title} currentValue={uploadModal.productId ? products.find(p => p.id === uploadModal.productId)?.imageUrl : siteSettings[uploadModal.field!]}
+        />
+        <main>
+          <Routes>
+            <Route path="/" element={<Home settings={siteSettings} onImageClick={isAdminMode ? (field) => setUploadModal({ isOpen: true, title: 'Update Image', field }) : undefined} />} />
+            <Route path="/pricing" element={<Pricing products={products} settings={siteSettings} />} />
+            <Route path="/checkout" element={<Checkout products={products} />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/product/:id" element={<ProductDetail products={products} onImageClick={isAdminMode ? (id) => setUploadModal({ isOpen: true, title: 'Update Product Image', productId: id }) : undefined} settings={siteSettings} />} />
+            <Route path="/affiliate" element={<AffiliateProgram settings={siteSettings} />} />
+            <Route path="/contact" element={<Contact settings={siteSettings} />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/legal/:type" element={<Legal />} />
+            <Route path="/congobaby1!1!" element={
+              <AdminDashboard 
+                products={products} 
+                setProducts={setProducts} 
+                siteSettings={siteSettings} 
+                setSiteSettings={setSiteSettings} 
+                onMagicScan={handleFullMagicUpdate} 
+              />
+            } />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </main>
+        <footer className="bg-slate-950 border-t border-slate-900 py-12 px-6">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 text-sm text-slate-400">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2 text-white">
+                <BrandText name={siteSettings.siteName} logoUrl={siteSettings.logoImageUrl} />
+              </div>
+              <p>Empowering small businesses with AI automation.</p>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4 text-white">Products</h4>
+              <ul className="space-y-2">
+                <li><Link to="/product/chatbot" className="hover:text-red-500 transition-colors">AI Chatbot</Link></li>
+                <li><Link to="/product/voicebot" className="hover:text-red-500 transition-colors">Website Voicebot</Link></li>
+                <li><Link to="/product/voice-agent" className="hover:text-red-500 transition-colors">AI Voice Agent</Link></li>
+                <li><Link to="/product/smart-website" className="hover:text-red-500 transition-colors">Smart Website</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4 text-white">Company</h4>
+              <ul className="space-y-2">
+                <li><Link to="/affiliate" className="hover:text-red-500 transition-colors">Affiliates</Link></li>
+                <li><Link to="/contact" className="hover:text-red-500 transition-colors">Contact</Link></li>
+                <li><Link to="/blog" className="hover:text-red-500 transition-colors">Blog</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4 text-white">Legal</h4>
+              <ul className="space-y-2">
+                <li><Link to="/legal/privacy" className="hover:text-red-500 transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/legal/terms" className="hover:text-red-500 transition-colors">Terms of Service</Link></li>
+                <li><Link to="/legal/affiliate-terms" className="hover:text-red-500 transition-colors">Affiliate Terms</Link></li>
+                <li><Link to="/legal/cookie" className="hover:text-red-500 transition-colors">Cookie Policy</Link></li>
+                <li><Link to="/legal/disclaimer" className="hover:text-red-500 transition-colors">Disclaimer</Link></li>
+              </ul>
+            </div>
+          </div>
+        </footer>
+        <BackToTopButton />
+      </div>
+    </main>
   );
 };
 
-export default App;
+// Simplified entry to handle routing context correctly
+const RootApp = () => (
+  <HashRouter>
+    <ScrollToTop />
+    <App />
+  </HashRouter>
+);
+
+export default RootApp;
