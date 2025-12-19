@@ -35,11 +35,10 @@ import Login from './pages/Login';
 import ProductDetail from './pages/ProductDetail';
 import AffiliateProgram from './pages/AffiliateProgram';
 import Contact from './pages/Contact';
-import Blog from './pages/Blog';
 import Legal from './pages/Legal';
 
 // Types & Data
-import { User, SiteSettings, Product, ProductType, BlogPost } from './types';
+import { User, SiteSettings, Product, ProductType } from './types';
 import { INITIAL_PRODUCTS } from './constants';
 import { generateAIImage, generateSiteBranding } from './services/gemini';
 import { db } from './services/db';
@@ -47,8 +46,7 @@ import { db } from './services/db';
 const STORAGE_KEYS = {
   SETTINGS: 'site_settings',
   PRODUCTS: 'products',
-  ADMIN_TOKEN: 'rw_admin_active',
-  BLOGS: 'site_blogs'
+  ADMIN_TOKEN: 'rw_admin_active'
 };
 
 const GET_STARTED_URL = "https://api.leadconnectorhq.com/widget/form/BGm7Yk9CCULsw34XwYeM?notrack=true";
@@ -388,7 +386,6 @@ const Navbar = ({ settings, onLogoClick, isAdminMode, onExitAdmin }: {
             </div>
           </div>
           <Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link>
-          <Link to="/blog" className="hover:text-white transition-colors">Blog</Link>
           
           {isAdminMode ? (
             <div className="flex items-center space-x-3">
@@ -418,7 +415,6 @@ const Navbar = ({ settings, onLogoClick, isAdminMode, onExitAdmin }: {
         <div className="md:hidden absolute top-24 left-6 right-6 bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-2xl z-40">
           <Link to="/" onClick={() => setIsOpen(false)} className="block text-lg">Home</Link>
           <Link to="/pricing" onClick={() => setIsOpen(false)} className="block text-lg">Pricing</Link>
-          <Link to="/blog" onClick={() => setIsOpen(false)} className="block text-lg">Blog</Link>
           {isAdminMode && <Link to="/congobaby1!1!" onClick={() => setIsOpen(false)} className="block text-lg text-red-500">Admin Dashboard</Link>}
           <a 
             href={GET_STARTED_URL}
@@ -449,7 +445,6 @@ const App: React.FC = () => {
   const [isAdminMode, setIsAdminMode] = useState(sessionStorage.getItem(STORAGE_KEYS.ADMIN_TOKEN) === 'true');
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [hasKey, setHasKey] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const isManuallyConnected = useRef(false);
@@ -502,8 +497,7 @@ const App: React.FC = () => {
       }
     }
     
-    // finalHasKey is true if (we have selected a key OR not in studio) 
-    // We assume process.env.API_KEY is handled correctly by the platform if isSelected is true.
+    // finalHasKey is true if we have a valid key string (and pass studio check if in that environment)
     const finalHasKey = isSelected;
     setHasKey(finalHasKey);
   };
@@ -602,14 +596,12 @@ const App: React.FC = () => {
   useEffect(() => {
     async function hydrate() {
       try {
-        const [savedSettings, savedProducts, savedBlogs] = await Promise.all([
+        const [savedSettings, savedProducts] = await Promise.all([
           db.get<SiteSettings>(STORAGE_KEYS.SETTINGS),
-          db.get<Product[]>(STORAGE_KEYS.PRODUCTS),
-          db.get<BlogPost[]>(STORAGE_KEYS.BLOGS)
+          db.get<Product[]>(STORAGE_KEYS.PRODUCTS)
         ]);
         if (savedSettings) setSiteSettings(prev => ({ ...prev, ...savedSettings }));
         if (savedProducts) setProducts(savedProducts);
-        if (savedBlogs) setBlogs(savedBlogs);
       } catch (e) {
         console.error("Hydration failed", e);
       } finally {
@@ -631,9 +623,8 @@ const App: React.FC = () => {
     if (isHydrated) {
       db.save(STORAGE_KEYS.SETTINGS, siteSettings);
       db.save(STORAGE_KEYS.PRODUCTS, products);
-      db.save(STORAGE_KEYS.BLOGS, blogs);
     }
-  }, [siteSettings, products, blogs, isHydrated]);
+  }, [siteSettings, products, isHydrated]);
 
   const [uploadModal, setUploadModal] = useState<{ 
     isOpen: boolean; title: string; field?: keyof SiteSettings; productId?: ProductType;
@@ -770,7 +761,6 @@ const App: React.FC = () => {
               <Route path="/product/:id" element={<ProductDetail products={products} onImageClick={isAdminMode ? (id) => setUploadModal({ isOpen: true, title: 'Update Product Image', productId: id }) : undefined} settings={siteSettings} />} />
               <Route path="/affiliate" element={<AffiliateProgram settings={siteSettings} />} />
               <Route path="/contact" element={<Contact settings={siteSettings} />} />
-              <Route path="/blog" element={<Blog blogs={blogs} />} />
               <Route path="/legal/:type" element={<Legal />} />
               <Route path="/congobaby1!1!" element={
                 <AdminDashboard 
@@ -779,8 +769,6 @@ const App: React.FC = () => {
                   siteSettings={siteSettings} 
                   setSiteSettings={setSiteSettings} 
                   onMagicScan={handleFullMagicUpdate}
-                  blogs={blogs}
-                  setBlogs={setBlogs}
                 />
               } />
               <Route path="*" element={<Navigate to="/" />} />
@@ -808,7 +796,6 @@ const App: React.FC = () => {
                 <ul className="space-y-2">
                   <li><Link to="/affiliate" className="hover:text-red-500 transition-colors">Affiliates</Link></li>
                   <li><Link to="/contact" className="hover:text-red-500 transition-colors">Contact</Link></li>
-                  <li><Link to="/blog" className="hover:text-red-500 transition-colors">Blog</Link></li>
                 </ul>
               </div>
               <div>
