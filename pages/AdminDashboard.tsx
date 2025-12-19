@@ -17,7 +17,8 @@ import {
   X,
   Palette,
   MousePointer2,
-  Code
+  Code,
+  Terminal
 } from 'lucide-react';
 import { Product, SiteSettings } from '../types';
 
@@ -32,8 +33,8 @@ interface AdminProps {
 const AdminDashboard: React.FC<AdminProps> = ({ products, setProducts, siteSettings, setSiteSettings, onMagicScan }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Product>>({});
-  const [activeTab, setActiveTab] = useState<'products' | 'cms' | 'magic'>('products');
-  const [cmsPage, setCmsPage] = useState<'home' | 'branding' | 'pricing' | 'affiliate' | 'contact' | 'advanced'>('home');
+  const [activeTab, setActiveTab] = useState<'products' | 'cms' | 'advanced' | 'magic'>('products');
+  const [cmsPage, setCmsPage] = useState<'home' | 'branding' | 'pricing' | 'affiliate' | 'contact'>('home');
   
   const [brandingForm, setBrandingForm] = useState<SiteSettings>(siteSettings);
   const [magicUrl, setMagicUrl] = useState('');
@@ -83,6 +84,7 @@ const AdminDashboard: React.FC<AdminProps> = ({ products, setProducts, siteSetti
         {[
           { id: 'products', label: 'Products', icon: Settings },
           { id: 'cms', label: 'Page CMS', icon: Layout },
+          { id: 'advanced', label: 'Advanced Settings', icon: Terminal },
           { id: 'magic', label: 'Magic AI', icon: Sparkles },
         ].map((tab) => (
           <button 
@@ -128,7 +130,7 @@ const AdminDashboard: React.FC<AdminProps> = ({ products, setProducts, siteSetti
       {activeTab === 'cms' && (
         <div className="space-y-8">
           <div className="flex flex-wrap bg-slate-900 p-1 rounded-2xl w-fit border border-slate-800">
-            {['home', 'branding', 'pricing', 'affiliate', 'contact', 'advanced'].map(p => (
+            {['home', 'branding', 'pricing', 'affiliate', 'contact'].map(p => (
               <button 
                 key={p} 
                 onClick={() => setCmsPage(p as any)}
@@ -234,58 +236,73 @@ const AdminDashboard: React.FC<AdminProps> = ({ products, setProducts, siteSetti
                   </div>
                 </>
               )}
-
-              {cmsPage === 'advanced' && (
-                <>
-                  <div className="space-y-6">
-                    <h4 className="font-bold flex items-center text-red-500">
-                      <Code className="w-4 h-4 mr-2" />
-                      Header Code Injection
-                    </h4>
-                    <p className="text-[10px] text-slate-500 uppercase font-black">Custom HTML/Scripts for the &lt;head&gt; section (Meta tags, tracking scripts, etc.)</p>
-                    <textarea 
-                      value={brandingForm.headerCode || ''} 
-                      onChange={e => setBrandingForm({...brandingForm, headerCode: e.target.value})} 
-                      className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-sm font-mono min-h-[120px]" 
-                      placeholder="<!-- Google Analytics, Facebook Pixel, etc. -->"
-                    />
-                  </div>
-
-                  <div className="space-y-6">
-                    <h4 className="font-bold flex items-center text-red-500">
-                      <Code className="w-4 h-4 mr-2" />
-                      Body Code Injection
-                    </h4>
-                    <p className="text-[10px] text-slate-500 uppercase font-black">Code to be placed at the very start of the &lt;body&gt; tag.</p>
-                    <textarea 
-                      value={brandingForm.bodyCode || ''} 
-                      onChange={e => setBrandingForm({...brandingForm, bodyCode: e.target.value})} 
-                      className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-sm font-mono min-h-[120px]" 
-                      placeholder="<!-- NoScript tags, body-start popups, etc. -->"
-                    />
-                  </div>
-
-                  <div className="space-y-6 md:col-span-2">
-                    <h4 className="font-bold flex items-center text-red-500">
-                      <Code className="w-4 h-4 mr-2" />
-                      Footer Code Injection
-                    </h4>
-                    <p className="text-[10px] text-slate-500 uppercase font-black">Code to be placed at the very end of the &lt;body&gt; tag (Useful for support widgets, chat scripts).</p>
-                    <textarea 
-                      value={brandingForm.footerCode || ''} 
-                      onChange={e => setBrandingForm({...brandingForm, footerCode: e.target.value})} 
-                      className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-sm font-mono min-h-[120px]" 
-                      placeholder="<!-- Custom chat widgets, extra analytics, etc. -->"
-                    />
-                  </div>
-                </>
-              )}
             </div>
             <button onClick={saveBranding} className="mt-8 px-10 py-4 bg-red-600 hover:bg-red-500 rounded-2xl font-bold flex items-center shadow-xl shadow-red-900/20">
               <Save className="w-4 h-4 mr-2" />
               Save Settings
             </button>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'advanced' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-[40px] p-10 shadow-2xl">
+          <div className="mb-10">
+            <h3 className="text-3xl font-extrabold flex items-center">
+              <Terminal className="w-8 h-8 mr-4 text-red-500" />
+              Custom Code Injection
+            </h3>
+            <p className="text-slate-400 mt-2">Inject custom HTML, CSS, or JavaScript into your site globally.</p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-10">
+            <div className="space-y-6">
+              <h4 className="font-bold flex items-center text-red-500">
+                <Code className="w-4 h-4 mr-2" />
+                Header Code Injection
+              </h4>
+              <p className="text-[10px] text-slate-500 uppercase font-black">Custom HTML/Scripts for the &lt;head&gt; section (Meta tags, tracking scripts, etc.)</p>
+              <textarea 
+                value={brandingForm.headerCode || ''} 
+                onChange={e => setBrandingForm({...brandingForm, headerCode: e.target.value})} 
+                className="w-full bg-slate-950 border border-slate-800 p-6 rounded-3xl text-sm font-mono min-h-[160px] focus:border-red-500 outline-none transition-all" 
+                placeholder="<!-- Google Analytics, Facebook Pixel, etc. -->"
+              />
+            </div>
+
+            <div className="space-y-6">
+              <h4 className="font-bold flex items-center text-red-500">
+                <Code className="w-4 h-4 mr-2" />
+                Body Code Injection
+              </h4>
+              <p className="text-[10px] text-slate-500 uppercase font-black">Code to be placed at the very start of the &lt;body&gt; tag.</p>
+              <textarea 
+                value={brandingForm.bodyCode || ''} 
+                onChange={e => setBrandingForm({...brandingForm, bodyCode: e.target.value})} 
+                className="w-full bg-slate-950 border border-slate-800 p-6 rounded-3xl text-sm font-mono min-h-[160px] focus:border-red-500 outline-none transition-all" 
+                placeholder="<!-- NoScript tags, body-start popups, etc. -->"
+              />
+            </div>
+
+            <div className="space-y-6">
+              <h4 className="font-bold flex items-center text-red-500">
+                <Code className="w-4 h-4 mr-2" />
+                Footer Code Injection
+              </h4>
+              <p className="text-[10px] text-slate-500 uppercase font-black">Code to be placed at the very end of the &lt;body&gt; tag (Useful for support widgets, chat scripts).</p>
+              <textarea 
+                value={brandingForm.footerCode || ''} 
+                onChange={e => setBrandingForm({...brandingForm, footerCode: e.target.value})} 
+                className="w-full bg-slate-950 border border-slate-800 p-6 rounded-3xl text-sm font-mono min-h-[160px] focus:border-red-500 outline-none transition-all" 
+                placeholder="<!-- Custom chat widgets, extra analytics, etc. -->"
+              />
+            </div>
+          </div>
+
+          <button onClick={saveBranding} className="mt-12 px-12 py-5 bg-red-600 hover:bg-red-500 rounded-2xl font-bold flex items-center shadow-xl shadow-red-900/20 text-lg transition-all active:scale-95">
+            <Save className="w-5 h-5 mr-3" />
+            Save Advanced Configuration
+          </button>
         </div>
       )}
 
