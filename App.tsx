@@ -392,8 +392,52 @@ const App: React.FC = () => {
     affiliateHeading: "Grow With Red Wire",
     affiliateSubheading: "The most generous partner program in the AI space.",
     contactHeading: "Get in Touch",
-    contactSubheading: "Questions about automation? Our experts are here to help."
+    contactSubheading: "Questions about automation? Our experts are here to help.",
+    headerCode: "",
+    bodyCode: "",
+    footerCode: ""
   });
+
+  // Inject custom code into head and body
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const injectCode = (code: string | undefined, id: string, target: HTMLElement, position: 'start' | 'end') => {
+      let container = document.getElementById(id);
+      if (!container) {
+        container = document.createElement('div');
+        container.id = id;
+        container.style.display = 'none';
+        if (position === 'start') {
+          target.prepend(container);
+        } else {
+          target.appendChild(container);
+        }
+      }
+      
+      if (code) {
+        container.innerHTML = '';
+        const range = document.createRange();
+        const documentFragment = range.createContextualFragment(code);
+        container.appendChild(documentFragment);
+        
+        // Contextual fragment doesn't execute <script> tags, so we must manually find and execute them
+        const scripts = container.querySelectorAll('script');
+        scripts.forEach(oldScript => {
+          const newScript = document.createElement('script');
+          Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+          newScript.textContent = oldScript.textContent;
+          oldScript.parentNode?.replaceChild(newScript, oldScript);
+        });
+      } else {
+        container.innerHTML = '';
+      }
+    };
+
+    injectCode(siteSettings.headerCode, 'custom-header-code', document.head, 'end');
+    injectCode(siteSettings.bodyCode, 'custom-body-code', document.body, 'start');
+    injectCode(siteSettings.footerCode, 'custom-footer-code', document.body, 'end');
+  }, [isHydrated, siteSettings.headerCode, siteSettings.bodyCode, siteSettings.footerCode]);
 
   useEffect(() => {
     async function hydrate() {

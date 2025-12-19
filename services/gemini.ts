@@ -1,9 +1,14 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
+
+// Helper to safely get API key and initialize AI client
+const getAIClient = () => {
+  const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : '';
+  return new GoogleGenAI({ apiKey: apiKey || '' });
+};
 
 export const generateBusinessSummary = async (businessName: string, industry: string) => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const ai = getAIClient();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Generate a short automation strategy (3 bullet points) for a business named "${businessName}" in the "${industry}" industry. Focus on how AI chatbots and voice agents can save time.`,
@@ -17,7 +22,7 @@ export const generateBusinessSummary = async (businessName: string, industry: st
 
 export const getOnboardingAssistance = async (product: string) => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const ai = getAIClient();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `The customer is setting up their "${product}". Suggest 3 initial questions their AI agent should ask new leads to maximize conversion.`,
@@ -45,7 +50,7 @@ export const getOnboardingAssistance = async (product: string) => {
  */
 export const generateSiteBranding = async (context: string) => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const ai = getAIClient();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `You are an expert branding agent. Based on this business description or URL: "${context}", generate a complete professional website branding package. 
@@ -96,7 +101,7 @@ export const generateSiteBranding = async (context: string) => {
  */
 export const generateAIImage = async (prompt: string, isLogo: boolean = false) => {
   try {
-    const aiImage = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const aiImage = getAIClient();
     const response = await aiImage.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
