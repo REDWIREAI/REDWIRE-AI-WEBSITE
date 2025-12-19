@@ -33,7 +33,6 @@ const ProductDetail = ({ products, onImageClick, settings }: ProductDetailProps)
       return "https://app.gohighlevel.com/v2/preview/E4AdV588KX2lRl90mzCG?notrack=true";
     }
     if (product.id === ProductType.SMART_WEBSITE) {
-      // Removed the #section-wHAeECu_cY fragment to ensure it loads at the top
       return "https://app.gohighlevel.com/v2/preview/kM5rp30Ez9uqPn5vNvXu?notrack=true";
     }
     if (product.id === ProductType.VOICEBOT) {

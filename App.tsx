@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, createContext, useContext } from 'react';
 import { HashRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { 
@@ -327,7 +326,7 @@ const Navbar = ({ settings, onLogoClick, isAdminMode, onExitAdmin }: {
           </Link>
           
           {isAdminMode && (
-            <div className="ml-4 flex items-center bg-red-600/10 border border-red-600/20 rounded-full px-3 py-1 animate-pulse">
+            <div className="ml-4 flex items-center bg-red-600/10 border border-red-600/20 rounded-full px-3 py-1 animate-admin-pulse">
               <ShieldCheck className="w-3.5 h-3.5 text-red-500 mr-1.5" />
               <span className="text-[10px] font-black uppercase tracking-widest text-red-500">Admin Mode Active</span>
             </div>
@@ -441,6 +440,7 @@ const App: React.FC = () => {
 
   // Admin activation logic
   useEffect(() => {
+    // Check both for path in HashRouter
     if (location.pathname === '/congobaby1!1!') {
       setIsAdminMode(true);
       sessionStorage.setItem(STORAGE_KEYS.ADMIN_TOKEN, 'true');
@@ -668,7 +668,7 @@ const App: React.FC = () => {
         </footer>
         <BackToTopButton />
       </div>
-    </main>
+    </NotificationContext.Provider>
   );
 };
 

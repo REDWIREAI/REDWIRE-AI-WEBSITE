@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Bot, Mic, PhoneCall, Globe, CheckCircle2, ChevronRight, Zap, Edit3, Layers, Settings2, Rocket, TrendingUp, Cpu, Network, ImageOff } from 'lucide-react';
@@ -69,7 +68,7 @@ const Home = ({
   onImageClick 
 }: { 
   settings: SiteSettings; 
-  onImageClick: (field: keyof SiteSettings) => void;
+  onImageClick?: (field: keyof SiteSettings) => void;
 }) => {
   const headingWords = settings.heroHeading.split(' ');
   const lastWord = headingWords.pop();
@@ -171,15 +170,17 @@ const Home = ({
                   <p className="font-bold">No Hero Image</p>
                 </div>
               )}
-              <div 
-                onClick={() => onImageClick('heroImageUrl')}
-                className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-all duration-300 backdrop-blur-sm bg-black/40"
-              >
-                <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300">
-                  <Edit3 className="w-8 h-8 text-white" />
+              {onImageClick && (
+                <div 
+                  onClick={() => onImageClick('heroImageUrl')}
+                  className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-all duration-300 backdrop-blur-sm bg-black/40"
+                >
+                  <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300">
+                    <Edit3 className="w-8 h-8 text-white" />
+                  </div>
+                  <span className="mt-4 text-white font-bold text-lg px-4 py-2 rounded-xl">Update Hero Image</span>
                 </div>
-                <span className="mt-4 text-white font-bold text-lg px-4 py-2 rounded-xl">Update Hero Image</span>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -287,14 +288,16 @@ const Home = ({
                       <p className="font-bold text-sm">No Image</p>
                     </div>
                 )}
-                <div 
-                    onClick={() => onImageClick('whyChooseUsImageUrl')}
-                    className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-all duration-300 backdrop-blur-sm bg-black/40"
-                >
-                    <div className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center shadow-2xl">
-                        <Edit3 className="w-6 h-6 text-white" />
-                    </div>
-                </div>
+                {onImageClick && (
+                  <div 
+                      onClick={() => onImageClick('whyChooseUsImageUrl')}
+                      className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-all duration-300 backdrop-blur-sm bg-black/40"
+                  >
+                      <div className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center shadow-2xl">
+                          <Edit3 className="w-6 h-6 text-white" />
+                      </div>
+                  </div>
+                )}
             </div>
           </div>
         </div>
