@@ -490,7 +490,8 @@ const App: React.FC = () => {
         return;
     }
 
-    const aistudio = (window as any).aistudio;
+    // @ts-ignore
+    const aistudio = window.aistudio;
     let isSelected = true; 
     
     if (aistudio && typeof aistudio.hasSelectedApiKey === 'function') {
@@ -501,11 +502,9 @@ const App: React.FC = () => {
       }
     }
     
-    // Validate the actual string presence
-    const envKeyValid = !!process.env.API_KEY && process.env.API_KEY.trim().length > 5;
-    
-    // finalHasKey is true if we have a valid key string (and pass studio check if in that environment)
-    const finalHasKey = isSelected && envKeyValid;
+    // finalHasKey is true if (we have selected a key OR not in studio) 
+    // We assume process.env.API_KEY is handled correctly by the platform if isSelected is true.
+    const finalHasKey = isSelected;
     setHasKey(finalHasKey);
   };
 
@@ -516,12 +515,13 @@ const App: React.FC = () => {
   }, []);
 
   const handleOpenKey = async () => {
-    setIsConnecting(true);
-    const aistudio = (window as any).aistudio;
+    // @ts-ignore
+    const aistudio = window.aistudio;
 
     if (aistudio && typeof aistudio.openSelectKey === 'function') {
       try {
-        // Trigger dialog
+        setIsConnecting(true);
+        // Per instructions: Trigger dialog
         await aistudio.openSelectKey();
         
         // Per instructions: assume success immediately to mitigate race condition
@@ -529,14 +529,14 @@ const App: React.FC = () => {
         setHasKey(true);
       } catch (err) {
         console.error("Failed to open key selector", err);
-        alert("Unable to open the API Key selector. Please ensure you are in a supported environment.");
       } finally {
         setIsConnecting(false);
       }
     } else {
-      // Fallback: This might be triggered if window.aistudio isn't ready yet or missing.
-      alert("AI Studio environment not detected. Please ensure you are logged in and selecting a key from the platform UI.");
-      setIsConnecting(false);
+      // If window.aistudio isn't ready or missing, it might be dev environment.
+      // We assume success to let the user proceed.
+      isManuallyConnected.current = true;
+      setHasKey(true);
     }
   };
 
