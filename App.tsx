@@ -212,8 +212,13 @@ const ImageUploadModal = ({
       const imageUrl = await generateAIImage(aiPrompt, false);
       if (typeof onSave === 'function') onSave(imageUrl);
       onClose();
-    } catch (err) {
-      alert("Failed to generate image. Please try again.");
+    } catch (err: any) {
+      if (err.message === "API_KEY_MISSING") {
+        // This will be caught by the parent component or handled via state
+        alert("Please connect your API Key first.");
+      } else {
+        alert("Failed to generate image. Please try again.");
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -421,7 +426,8 @@ const Navbar = ({ settings, onLogoClick, isAdminMode, onExitAdmin }: {
           </a>
           {isAdminMode && (
             <button 
-              onClick={() => { onExitAdmin(); setIsOpen(false); }}
+              onClick={// @ts-ignore
+                () => { onExitAdmin(); setIsOpen(false); }}
               className="w-full py-3 bg-slate-800 rounded-xl font-bold text-sm"
             >
               Exit Admin Mode
@@ -439,7 +445,8 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
-  const [hasKey, setHasKey] = useState(true);
+  // Start with false to force check/prompt
+  const [hasKey, setHasKey] = useState(false);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
     siteName: "Red Wire AI", 
     primaryButtonColor: "#dc2626",
@@ -476,10 +483,19 @@ const App: React.FC = () => {
       if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
         // @ts-ignore
         const selected = await window.aistudio.hasSelectedApiKey();
-        setHasKey(selected);
+        // Also check if the string itself is actually available in the environment
+        const envKeyAvailable = !!process.env.API_KEY;
+        setHasKey(selected && envKeyAvailable);
+      } else {
+        // Fallback for non-aistudio environments
+        setHasKey(!!process.env.API_KEY);
       }
     };
     checkKey();
+    
+    // Check periodically or on focus to catch key injection
+    const interval = setInterval(checkKey, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleOpenKey = async () => {
@@ -487,7 +503,7 @@ const App: React.FC = () => {
     if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
       // @ts-ignore
       await window.aistudio.openSelectKey();
-      // Assume selection was successful and proceed
+      // MUST assume success as per guidelines
       setHasKey(true);
     }
   };
@@ -622,7 +638,7 @@ const App: React.FC = () => {
       return true;
     } catch (err: any) {
       console.error(err);
-      if (err.message && err.message.includes("Requested entity was not found")) {
+      if (err.message === "API_KEY_MISSING" || (err.message && err.message.includes("Requested entity was not found"))) {
         setHasKey(false);
       }
       return false;

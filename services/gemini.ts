@@ -3,11 +3,22 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { SiteSettings, Product } from "../types";
 
 /**
+ * Validates the presence of the API key and returns a fresh client instance.
+ */
+const getClient = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("API_KEY_MISSING");
+  }
+  return new GoogleGenAI({ apiKey });
+};
+
+/**
  * Generates an SEO-optimized blog post based on the site's branding and products.
  */
 export const generateBlogContent = async (siteSettings: SiteSettings, products: Product[]) => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = getClient();
     const productList = products.map(p => `- ${p.name}: ${p.description}`).join('\n');
     
     const prompt = `You are a world-class SEO content strategist and writer for "${siteSettings.siteName}".
@@ -67,7 +78,7 @@ export const generateBlogContent = async (siteSettings: SiteSettings, products: 
 
 export const generateBusinessSummary = async (businessName: string, industry: string) => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = getClient();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Generate a short automation strategy (3 bullet points) for a business named "${businessName}" in the "${industry}" industry. Focus on how AI chatbots and voice agents can save time.`,
@@ -75,13 +86,14 @@ export const generateBusinessSummary = async (businessName: string, industry: st
     return response.text;
   } catch (error) {
     console.error("Gemini Error:", error);
+    if (error instanceof Error && error.message === "API_KEY_MISSING") throw error;
     return "AI insights currently unavailable. Let's proceed with your custom configuration.";
   }
 };
 
 export const getOnboardingAssistance = async (product: string) => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = getClient();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `The customer is setting up their "${product}". Suggest 3 initial questions their AI agent should ask new leads to maximize conversion.`,
@@ -100,6 +112,7 @@ export const getOnboardingAssistance = async (product: string) => {
     });
     return JSON.parse(response.text || '{"questions": []}');
   } catch (error) {
+    if (error instanceof Error && error.message === "API_KEY_MISSING") throw error;
     return { questions: ["What is your name?", "How can we help you today?", "What is the best way to contact you?"] };
   }
 }
@@ -109,7 +122,7 @@ export const getOnboardingAssistance = async (product: string) => {
  */
 export const generateSiteBranding = async (context: string) => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = getClient();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `You are an expert branding agent. Based on this business description or URL: "${context}", generate a complete professional website branding package. 
@@ -160,7 +173,7 @@ export const generateSiteBranding = async (context: string) => {
  */
 export const generateAIImage = async (prompt: string, isLogo: boolean = false) => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = getClient();
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
