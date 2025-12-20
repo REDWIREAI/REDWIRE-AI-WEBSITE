@@ -14,7 +14,8 @@ import {
   DollarSign,
   AlertCircle,
   CheckCircle2,
-  Zap
+  Zap,
+  Code
 } from 'lucide-react';
 import { Product, SiteSettings, ProductType } from '../types';
 
@@ -46,7 +47,7 @@ const AdminDashboard: React.FC<AdminProps> = ({ products, setProducts, siteSetti
     setTimeout(() => {
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 2000);
-    }, 8000);
+    }, 1500);
   };
 
   const handleMagicRebrand = async () => {
@@ -246,6 +247,44 @@ const AdminDashboard: React.FC<AdminProps> = ({ products, setProducts, siteSetti
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 focus:border-red-500 outline-none"
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-10 border-t border-slate-800">
+              <h3 className="text-xl font-bold flex items-center mb-6">
+                <Code className="w-5 h-5 mr-3 text-red-500" /> Custom Code Injection
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Header Code (Inside &lt;head&gt;)</label>
+                  <textarea 
+                    value={siteSettings.headerCode} 
+                    onChange={(e) => handleSettingsUpdate('headerCode', e.target.value)}
+                    rows={6}
+                    placeholder="<!-- Add Google Analytics, Pixel, etc. -->"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 focus:border-red-500 outline-none text-[12px] font-mono leading-relaxed"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Body Code (Top of &lt;body&gt;)</label>
+                  <textarea 
+                    value={siteSettings.bodyCode} 
+                    onChange={(e) => handleSettingsUpdate('bodyCode', e.target.value)}
+                    rows={6}
+                    placeholder="<!-- GTM noscript or tracking tags -->"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 focus:border-red-500 outline-none text-[12px] font-mono leading-relaxed"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Footer Code (End of &lt;body&gt;)</label>
+                  <textarea 
+                    value={siteSettings.footerCode} 
+                    onChange={(e) => handleSettingsUpdate('footerCode', e.target.value)}
+                    rows={6}
+                    placeholder="<!-- Add custom chat widgets or footer scripts -->"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 focus:border-red-500 outline-none text-[12px] font-mono leading-relaxed"
+                  />
                 </div>
               </div>
             </div>
