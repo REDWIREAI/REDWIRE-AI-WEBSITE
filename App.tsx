@@ -559,10 +559,37 @@ const App: React.FC = () => {
 
     const injectCode = (code: string | undefined, id: string, target: HTMLElement, position: 'start' | 'end') => {
       let container = document.getElementById(id);
+      
+      // For head injection, we handle it differently to avoid div wrappers
+      if (target === document.head) {
+        if (container) container.remove(); // Clear old injection
+        if (code) {
+          const range = document.createRange();
+          const documentFragment = range.createContextualFragment(code);
+          const wrapper = document.createElement('div');
+          wrapper.id = id;
+          wrapper.style.display = 'none';
+          wrapper.appendChild(documentFragment);
+          
+          // Re-execute scripts
+          const scripts = wrapper.querySelectorAll('script');
+          scripts.forEach(oldScript => {
+            const newScript = document.createElement('script');
+            Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+            newScript.textContent = oldScript.textContent;
+            oldScript.parentNode?.replaceChild(newScript, oldScript);
+          });
+          
+          target.appendChild(wrapper);
+        }
+        return;
+      }
+
+      // Standard body/footer injection with visibility
       if (!container) {
         container = document.createElement('div');
         container.id = id;
-        container.style.display = 'none';
+        // DO NOT use display: none here if you want UI widgets to show
         if (position === 'start') {
           target.prepend(container);
         } else {
@@ -580,6 +607,10 @@ const App: React.FC = () => {
         scripts.forEach(oldScript => {
           const newScript = document.createElement('script');
           Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+          if (oldScript.src) {
+              newScript.src = oldScript.src;
+              newScript.async = true;
+          }
           newScript.textContent = oldScript.textContent;
           oldScript.parentNode?.replaceChild(newScript, oldScript);
         });
