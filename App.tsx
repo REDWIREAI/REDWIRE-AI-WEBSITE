@@ -78,42 +78,6 @@ const ScrollToTop = () => {
   return null;
 };
 
-const BackToTopButton = () => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const toggleVisibility = () => {
-      if (window.scrollY > 400) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
-      }
-    };
-
-    window.addEventListener('scroll', toggleVisibility);
-    return () => window.removeEventListener('scroll', toggleVisibility);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
-  };
-
-  return (
-    <button
-      onClick={scrollToTop}
-      className={`fixed bottom-8 right-8 z-[60] w-14 h-14 flex items-center justify-center rounded-full bg-red-600 text-white shadow-2xl shadow-red-900/40 transition-all duration-500 transform hover:bg-red-500 hover:scale-110 active:scale-95 border border-white/10 ${
-        isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-20 scale-50 pointer-events-none'
-      }`}
-      aria-label="Back to top"
-    >
-      <ArrowUp className="w-7 h-7" />
-    </button>
-  );
-};
-
 export const BrandText = ({ name, logoUrl, onLogoClick }: { name: string; logoUrl?: string; onLogoClick?: () => void }) => {
   const words = name.toUpperCase().split(' ');
   const handleClick = () => {
@@ -841,7 +805,6 @@ const App: React.FC = () => {
               </div>
             </div>
           </footer>
-          <BackToTopButton />
         </div>
       </KeyContext.Provider>
     </NotificationContext.Provider>
