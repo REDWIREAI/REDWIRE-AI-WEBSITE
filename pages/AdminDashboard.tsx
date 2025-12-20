@@ -28,7 +28,7 @@ interface AdminProps {
 }
 
 const AdminDashboard: React.FC<AdminProps> = ({ products, setProducts, siteSettings, setSiteSettings, onMagicScan }) => {
-  const [activeTab, setActiveTab] = useState<'products' | 'cms' | 'magic'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'cms' | 'code' | 'magic'>('products');
   const [magicContext, setMagicContext] = useState('');
   const [isMagicLoading, setIsMagicLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -95,6 +95,7 @@ const AdminDashboard: React.FC<AdminProps> = ({ products, setProducts, siteSetti
         {[
           { id: 'products', label: 'Products', icon: Settings },
           { id: 'cms', label: 'Page CMS', icon: Layout },
+          { id: 'code', label: 'Code Injection', icon: Code },
           { id: 'magic', label: 'Magic Rebrand', icon: Sparkles },
         ].map((tab) => (
           <button 
@@ -102,7 +103,7 @@ const AdminDashboard: React.FC<AdminProps> = ({ products, setProducts, siteSetti
             onClick={() => setActiveTab(tab.id as any)}
             className={`flex items-center px-6 py-3 rounded-xl font-bold transition-all border-2 ${
               activeTab === tab.id 
-              ? 'bg-red-600 border-red-600 text-white' 
+              ? 'bg-red-600 border-red-600 text-white shadow-lg' 
               : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
             }`}
           >
@@ -250,42 +251,59 @@ const AdminDashboard: React.FC<AdminProps> = ({ products, setProducts, siteSetti
                 </div>
               </div>
             </div>
+          </div>
+        )}
 
-            <div className="pt-10 border-t border-slate-800">
-              <h3 className="text-xl font-bold flex items-center mb-6">
-                <Code className="w-5 h-5 mr-3 text-red-500" /> Custom Code Injection
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Header Code (Inside &lt;head&gt;)</label>
-                  <textarea 
-                    value={siteSettings.headerCode} 
-                    onChange={(e) => handleSettingsUpdate('headerCode', e.target.value)}
-                    rows={6}
-                    placeholder="<!-- Add Google Analytics, Pixel, etc. -->"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 focus:border-red-500 outline-none text-[12px] font-mono leading-relaxed"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Body Code (Top of &lt;body&gt;)</label>
-                  <textarea 
-                    value={siteSettings.bodyCode} 
-                    onChange={(e) => handleSettingsUpdate('bodyCode', e.target.value)}
-                    rows={6}
-                    placeholder="<!-- GTM noscript or tracking tags -->"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 focus:border-red-500 outline-none text-[12px] font-mono leading-relaxed"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Footer Code (End of &lt;body&gt;)</label>
-                  <textarea 
-                    value={siteSettings.footerCode} 
-                    onChange={(e) => handleSettingsUpdate('footerCode', e.target.value)}
-                    rows={6}
-                    placeholder="<!-- Add custom chat widgets or footer scripts -->"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 focus:border-red-500 outline-none text-[12px] font-mono leading-relaxed"
-                  />
-                </div>
+        {activeTab === 'code' && (
+          <div className="p-10 space-y-10 animate-in fade-in duration-500">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-12 h-12 bg-red-600/10 rounded-2xl flex items-center justify-center text-red-500">
+                <Code className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold">Custom Code Injection</h3>
+                <p className="text-sm text-slate-500">Add tracking scripts, custom styles, or widgets to your ecosystem.</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-8">
+              <div className="space-y-4">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400 block flex items-center">
+                  Header Scripts <span className="ml-2 text-[10px] font-normal text-slate-600">(Inside &lt;head&gt; tag)</span>
+                </label>
+                <textarea 
+                  value={siteSettings.headerCode} 
+                  onChange={(e) => handleSettingsUpdate('headerCode', e.target.value)}
+                  rows={8}
+                  placeholder="<!-- Paste Google Analytics, Meta Pixel, or CSS here -->"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 focus:border-red-500 outline-none text-[13px] font-mono leading-relaxed shadow-inner"
+                />
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400 block flex items-center">
+                  Body Start Scripts <span className="ml-2 text-[10px] font-normal text-slate-600">(Immediately after &lt;body&gt; opens)</span>
+                </label>
+                <textarea 
+                  value={siteSettings.bodyCode} 
+                  onChange={(e) => handleSettingsUpdate('bodyCode', e.target.value)}
+                  rows={8}
+                  placeholder="<!-- Paste GTM Noscript or welcome banners here -->"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 focus:border-red-500 outline-none text-[13px] font-mono leading-relaxed shadow-inner"
+                />
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400 block flex items-center">
+                  Footer Scripts <span className="ml-2 text-[10px] font-normal text-slate-600">(Before &lt;/body&gt; closes)</span>
+                </label>
+                <textarea 
+                  value={siteSettings.footerCode} 
+                  onChange={(e) => handleSettingsUpdate('footerCode', e.target.value)}
+                  rows={8}
+                  placeholder="<!-- Paste Chat Widgets or tracking pixels here -->"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 focus:border-red-500 outline-none text-[13px] font-mono leading-relaxed shadow-inner"
+                />
               </div>
             </div>
           </div>
