@@ -24,24 +24,24 @@ import {
 } from 'lucide-react';
 
 // Pages
-import Home from './pages/Home';
-import Pricing from './pages/Pricing';
-import Checkout from './pages/Checkout';
-import Onboarding from './pages/Onboarding';
-import Dashboard from './pages/Dashboard';
-import AffiliateDashboard from './pages/AffiliateDashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import Login from './pages/Login';
-import ProductDetail from './pages/ProductDetail';
-import AffiliateProgram from './pages/AffiliateProgram';
-import Contact from './pages/Contact';
-import Legal from './pages/Legal';
+import Home from './pages/Home.tsx';
+import Pricing from './pages/Pricing.tsx';
+import Checkout from './pages/Checkout.tsx';
+import Onboarding from './pages/Onboarding.tsx';
+import Dashboard from './pages/Dashboard.tsx';
+import AffiliateDashboard from './pages/AffiliateDashboard.tsx';
+import AdminDashboard from './pages/AdminDashboard.tsx';
+import Login from './pages/Login.tsx';
+import ProductDetail from './pages/ProductDetail.tsx';
+import AffiliateProgram from './pages/AffiliateProgram.tsx';
+import Contact from './pages/Contact.tsx';
+import Legal from './pages/Legal.tsx';
 
 // Types & Data
-import { User, SiteSettings, Product, ProductType } from './types';
-import { INITIAL_PRODUCTS } from './constants';
-import { generateAIImage, generateSiteBranding } from './services/gemini';
-import { db } from './services/db';
+import { User, SiteSettings, Product, ProductType } from './types.ts';
+import { INITIAL_PRODUCTS } from './constants.ts';
+import { generateAIImage, generateSiteBranding } from './services/gemini.ts';
+import { db } from './services/db.ts';
 
 const STORAGE_KEYS = {
   SETTINGS: 'site_settings',
@@ -444,10 +444,7 @@ const App: React.FC = () => {
   const location = useLocation();
 
   const checkKey = async () => {
-    // If we've already marked it as manually connected to avoid race conditions, skip auto-check
-    if (isManuallyConnected.current) {
-        return;
-    }
+    if (isManuallyConnected.current) return;
 
     // @ts-ignore
     const aistudio = window.aistudio;
@@ -461,9 +458,7 @@ const App: React.FC = () => {
       }
     }
     
-    // finalHasKey is true if we have a valid key string (and pass studio check if in that environment)
-    const finalHasKey = isSelected;
-    setHasKey(finalHasKey);
+    setHasKey(isSelected);
   };
 
   useEffect(() => {
@@ -479,10 +474,7 @@ const App: React.FC = () => {
     if (aistudio && typeof aistudio.openSelectKey === 'function') {
       try {
         setIsConnecting(true);
-        // Per instructions: Trigger dialog
         await aistudio.openSelectKey();
-        
-        // Per instructions: assume success immediately to mitigate race condition
         isManuallyConnected.current = true;
         setHasKey(true);
       } catch (err) {
@@ -491,8 +483,6 @@ const App: React.FC = () => {
         setIsConnecting(false);
       }
     } else {
-      // If window.aistudio isn't ready or missing, it might be dev environment.
-      // We assume success to let the user proceed.
       isManuallyConnected.current = true;
       setHasKey(true);
     }
@@ -503,7 +493,6 @@ const App: React.FC = () => {
     setHasKey(false);
   };
 
-  // Robust Admin activation logic
   useEffect(() => {
     const isAdminPath = location.pathname === '/congobaby1!1!' || window.location.hash.includes('/congobaby1!1!');
     if (isAdminPath) {
@@ -524,36 +513,42 @@ const App: React.FC = () => {
     const injectCode = (code: string | undefined, id: string, target: HTMLElement, position: 'start' | 'end') => {
       let container = document.getElementById(id);
       
-      // For head injection, we handle it differently to avoid div wrappers
+      // For head injection, avoid div wrappers which are invalid in <head>
       if (target === document.head) {
-        if (container) container.remove(); // Clear old injection
+        // Find existing custom script markers and remove them
+        const existing = target.querySelectorAll(`[data-injected-id="${id}"]`);
+        existing.forEach(el => el.remove());
+        
         if (code) {
           const range = document.createRange();
-          const documentFragment = range.createContextualFragment(code);
-          const wrapper = document.createElement('div');
-          wrapper.id = id;
-          wrapper.style.display = 'none';
-          wrapper.appendChild(documentFragment);
+          const fragment = range.createContextualFragment(code);
           
-          // Re-execute scripts
-          const scripts = wrapper.querySelectorAll('script');
+          // Process scripts specifically to ensure they run
+          const scripts = fragment.querySelectorAll('script');
           scripts.forEach(oldScript => {
             const newScript = document.createElement('script');
             Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+            newScript.setAttribute('data-injected-id', id);
             newScript.textContent = oldScript.textContent;
-            oldScript.parentNode?.replaceChild(newScript, oldScript);
+            target.appendChild(newScript);
+            oldScript.remove(); // Remove from fragment so it's not doubled
           });
-          
-          target.appendChild(wrapper);
+
+          // Append the rest of the fragment (styles, meta tags)
+          Array.from(fragment.childNodes).forEach(node => {
+            if (node instanceof HTMLElement) {
+              node.setAttribute('data-injected-id', id);
+            }
+            target.appendChild(node);
+          });
         }
         return;
       }
 
-      // Standard body/footer injection with visibility
+      // Standard body/footer injection
       if (!container) {
         container = document.createElement('div');
         container.id = id;
-        // DO NOT use display: none here if you want UI widgets to show
         if (position === 'start') {
           target.prepend(container);
         } else {
