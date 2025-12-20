@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { TrendingUp, Users, DollarSign, PieChart, ShieldCheck, ArrowRight, Zap, Gift, Loader2 } from 'lucide-react';
+import { TrendingUp, Users, DollarSign, PieChart, Gift, Loader2 } from 'lucide-react';
 import { SiteSettings } from '../types';
-import { useNotify } from '../App';
+import { useNotify } from '../shared';
 
 const BenefitCard = ({ icon: Icon, title, desc }: any) => (
   <div className="p-8 bg-slate-900/50 border border-slate-800 rounded-3xl">
@@ -25,7 +24,7 @@ const AffiliateProgram = ({ settings }: { settings: SiteSettings }) => {
   const handleApply = () => {
     setIsApplying(true);
     setTimeout(() => {
-      notify("Partner Alert: New affiliate application received. Admin text notification sent.", 'affiliate');
+      notify("Partner Alert: New affiliate application received.", 'affiliate');
       setIsApplying(false);
       alert("Application Submitted! Our team will review your application and text you within 24 hours.");
     }, 1500);
@@ -46,7 +45,7 @@ const AffiliateProgram = ({ settings }: { settings: SiteSettings }) => {
           <button 
             onClick={handleApply}
             disabled={isApplying}
-            className="w-full sm:w-auto px-10 py-5 bg-red-600 hover:bg-red-500 text-white rounded-3xl font-bold text-xl shadow-2xl shadow-red-900/40 flex items-center justify-center disabled:opacity-50"
+            className="w-full sm:w-auto px-10 py-5 bg-red-600 hover:bg-red-500 text-white rounded-3xl font-bold text-xl shadow-2xl flex items-center justify-center disabled:opacity-50"
           >
             {isApplying ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Apply to Join'}
           </button>
@@ -56,10 +55,10 @@ const AffiliateProgram = ({ settings }: { settings: SiteSettings }) => {
       <section className="bg-slate-950 px-6 py-24 border-y border-slate-900">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <BenefitCard icon={TrendingUp} title="High Commissions" desc="Earn a massive 45% recurring commission on every subscription, including setup fees." />
-            <BenefitCard icon={Users} title="Cookie Duration" desc="90-day tracking cookies ensure you get credit for every conversion across devices." />
-            <BenefitCard icon={DollarSign} title="Monthly Payouts" desc="Reliable monthly payouts via Stripe for all approved commissions from active clients." />
-            <BenefitCard icon={PieChart} title="Real-time Tracking" desc="Advanced dashboard to track clicks, leads, and monthly recurring revenue contributions." />
+            <BenefitCard icon={TrendingUp} title="High Commissions" desc="Earn a massive 45% recurring commission on every subscription." />
+            <BenefitCard icon={Users} title="Cookie Duration" desc="90-day tracking cookies ensure you get credit for every conversion." />
+            <BenefitCard icon={DollarSign} title="Monthly Payouts" desc="Reliable monthly payouts via Stripe for all approved commissions." />
+            <BenefitCard icon={PieChart} title="Real-time Tracking" desc="Advanced dashboard to track clicks and MRR contributions." />
           </div>
         </div>
       </section>
