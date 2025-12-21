@@ -1,14 +1,13 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { SiteSettings, Product } from "../types";
 
 /**
  * Validates the presence of the API key and returns a fresh client instance.
- * As per guidelines, we instantiate right before the call to get the latest env state.
+ * Exclusively uses process.env.API_KEY as per guidelines.
  */
 const getClient = () => {
   const apiKey = process.env.API_KEY;
-  if (!apiKey || apiKey.trim() === "") {
+  if (!apiKey || apiKey.trim() === "" || apiKey === "PLACEHOLDER_API_KEY") {
     throw new Error("API_KEY_MISSING");
   }
   return new GoogleGenAI({ apiKey: apiKey.trim() });
@@ -34,7 +33,7 @@ export const generateBlogContent = async (siteSettings: SiteSettings, products: 
     - Structure: Use Markdown with clear H1, H2, and H3 subheadings. 
     - Content: Minimum 500 words. Informative, solves a pain point, and includes a call to action.
     - SEO Meta: Generate a concise meta description (max 160 chars) and 5-8 relevant keywords.
-    - Image: Create a detailed prompt for a professional tech illustration that captures the essence of this specific topic.
+    - Image: Create a detailed prompt for a professional tech illustration that captures the essence of this topic.
     
     Return the response ONLY as a JSON object with:
     - title: string

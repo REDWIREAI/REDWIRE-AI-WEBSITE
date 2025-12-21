@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { 
@@ -10,26 +9,26 @@ import {
 } from 'lucide-react';
 
 // Shared Utilities & Components
-import { Notification, NotificationContext, KeyContext, useKeyStatus, BrandText } from './shared.tsx';
-import { Navbar, ImageUploadModal } from './components/UI.tsx';
+import { Notification, NotificationContext, KeyContext, useKeyStatus, BrandText } from './shared';
+import { Navbar, ImageUploadModal } from './components/UI';
 
 // Pages
-import Home from './pages/Home.tsx';
-import Pricing from './pages/Pricing.tsx';
-import Checkout from './pages/Checkout.tsx';
-import Onboarding from './pages/Onboarding.tsx';
-import AdminDashboard from './pages/AdminDashboard.tsx';
-import Login from './pages/Login.tsx';
-import ProductDetail from './pages/ProductDetail.tsx';
-import AffiliateProgram from './pages/AffiliateProgram.tsx';
-import Contact from './pages/Contact.tsx';
-import Legal from './pages/Legal.tsx';
+import Home from './pages/Home';
+import Pricing from './pages/Pricing';
+import Checkout from './pages/Checkout';
+import Onboarding from './pages/Onboarding';
+import AdminDashboard from './pages/AdminDashboard';
+import Login from './pages/Login';
+import ProductDetail from './pages/ProductDetail';
+import AffiliateProgram from './pages/AffiliateProgram';
+import Contact from './pages/Contact';
+import Legal from './pages/Legal';
 
 // Types & Data
-import { SiteSettings, Product, ProductType } from './types.ts';
-import { INITIAL_PRODUCTS } from './constants.ts';
-import { generateAIImage, generateSiteBranding } from './services/gemini.ts';
-import { db } from './services/db.ts';
+import { SiteSettings, Product, ProductType } from './types';
+import { INITIAL_PRODUCTS } from './constants';
+import { generateAIImage, generateSiteBranding } from './services/gemini';
+import { db } from './services/db';
 
 const STORAGE_KEYS = {
   SETTINGS: 'site_settings',
