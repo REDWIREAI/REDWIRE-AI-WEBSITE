@@ -276,9 +276,11 @@ const App: React.FC = () => {
   );
 };
 
-export default () => (
+const RedWireApp = () => (
   <HashRouter>
     <ScrollToTop />
     <App />
   </HashRouter>
 );
+
+export default RedWireApp;

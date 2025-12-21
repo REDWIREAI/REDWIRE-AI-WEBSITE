@@ -5,21 +5,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Red Wire AI | Automate & Scale</title>
-  <script>
-    // SPA Redirect for Static Hosting (Netlify/Vercel)
-    // Converts clean URLs to HashRouter URLs to prevent 404s
-    (function() {
-      var path = window.location.pathname;
-      var search = window.location.search;
-      var hash = window.location.hash;
-      
-      if (path && path !== '/' && !path.includes('.') && !hash) {
-        window.location.replace(window.location.origin + '/#' + path + search);
-      }
-    })();
-  </script>
   
-  <!-- Modern Tailwind Play CDN -->
+  <!-- Tailwind Play CDN for development and fast prototyping -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -47,55 +34,39 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <style type="text/css">
-    body { font-family: 'Inter', sans-serif; }
-    
-    /* Utility Classes */
+    body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
     .glass {
       background: rgba(255, 255, 255, 0.05);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
-    
     .dark-glass {
       background: rgba(15, 23, 42, 0.8);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.05);
     }
-    
-    /* Custom Scrollbar for SEO Editor */
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 6px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: rgba(15, 23, 42, 0.5);
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #dc2626;
-      border-radius: 10px;
-    }
-
-    /* Animations */
-    @keyframes admin-pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.7; transform: scale(0.98); }
-    }
-    .animate-admin-pulse {
-      animation: admin-pulse 2s infinite ease-in-out;
-    }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #dc2626; border-radius: 10px; }
   </style>
 
 <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3",
+    "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client",
+    "react/jsx-runtime": "https://esm.sh/react@^19.2.3/jsx-runtime",
     "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
     "react-router-dom": "https://esm.sh/react-router-dom@^7.10.1",
     "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
-    "recharts": "https://esm.sh/recharts@^3.6.0"
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }
 </script>
